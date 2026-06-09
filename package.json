@@ -1,0 +1,15 @@
+{
+  "name": "whimsy",
+  "private": true,
+  "version": "0.1.0",
+  "description": "一念成游 — one sentence to a playable 2D game",
+  "scripts": {
+    "build": "pnpm -r build",
+    "test": "pnpm -r test",
+    "lint": "pnpm -r lint",
+    "dev:web": "pnpm --filter @whimsy/web dev",
+    "dev:worker": "pnpm --filter @whimsy/worker dev"
+  },
+  "engines": { "node": ">=20" },
+  "packageManager": "pnpm@9.0.0"
+}

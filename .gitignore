@@ -1,50 +1,11 @@
-# Dependencies
 node_modules/
-.pnpm-store/
-
-# Build outputs
+dist/
 .next/
 out/
-dist/
-build/
-*.tsbuildinfo
-
-# Cloudflare
 .wrangler/
-.dev.vars
-.dev.vars.*
-
-# Env files
+*.log
+.DS_Store
 .env
 .env.local
-.env.*.local
-!.env.example
-
-# Editor
-.vscode/
-.idea/
-*.swp
-*.swo
-.DS_Store
-
-# Logs
-*.log
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-pnpm-debug.log*
-
-# Test coverage
 coverage/
-.nyc_output/
-
-# Misc
-*.pid
-*.seed
-*.pid.lock
-.pnp.*
-
-# Game artifacts (generated at runtime)
-public/games/*.html
-public/games/*.json
-!public/games/.gitkeep
+*.tsbuildinfo
