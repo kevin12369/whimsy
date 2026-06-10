@@ -6,5 +6,5 @@
     "noEmit": true,
     "incremental": true
   },
-  "include": ["pages/**/*", "components/**/*", "lib/**/*", "tests/**/*"]
+  "include": ["pages/**/*", "components/**/*", "lib/**/*", "functions/**/*", "tests/**/*"]
 }
