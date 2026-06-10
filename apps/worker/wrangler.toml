@@ -23,3 +23,6 @@ CSP_REPORT_ONLY = "false"
 #   CF_API_TOKEN
 #   DEEPSEEK_API_KEY
 #   GEMINI_API_KEY
+
+# Set LLM_KILL_SWITCH=true to disable LLM calls and serve a pre-baked template instead.
+# Use during cost emergencies or vendor outages.
