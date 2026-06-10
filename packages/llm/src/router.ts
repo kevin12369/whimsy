@@ -40,5 +40,13 @@ export function pickProvider(model: Model, env: LlmEnv): Provider {
       }
       return new AnthropicProvider(env.USER_ANTHROPIC_KEY);
     }
+    case 'ollama':
+    case 'openai-compatible': {
+      throw new LlmError('router', `Local model "${model}" not yet supported (planned for upcoming task)`, false);
+    }
+    default: {
+      const _exhaustive: never = model;
+      throw new LlmError('router', `Unknown model: ${_exhaustive as string}`, false);
+    }
   }
 }
