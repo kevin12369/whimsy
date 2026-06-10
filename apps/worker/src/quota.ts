@@ -7,6 +7,7 @@ export interface UsageDelta {
   deepseek: number;
   gemini: number;
   byok: number;
+  local?: number;
   generations: number;
   retries: number;
 }
@@ -17,7 +18,7 @@ function todayKey(userId: string): string { return `usage:${userId}:${new Date()
 
 async function readUsage(kv: KVNamespace, userId: string): Promise<UsageDelta> {
   const raw = await kv.get(todayKey(userId));
-  if (!raw) return { workers_ai: 0, deepseek: 0, gemini: 0, byok: 0, generations: 0, retries: 0 };
+  if (!raw) return { workers_ai: 0, deepseek: 0, gemini: 0, byok: 0, local: 0, generations: 0, retries: 0 };
   return JSON.parse(raw) as UsageDelta;
 }
 
@@ -38,6 +39,7 @@ export async function increment(kv: KVNamespace, userId: string, delta: UsageDel
     deepseek: cur.deepseek + delta.deepseek,
     gemini: cur.gemini + delta.gemini,
     byok: cur.byok + delta.byok,
+    local: (cur.local ?? 0) + (delta.local ?? 0),
     generations: cur.generations + delta.generations,
     retries: cur.retries + delta.retries,
   };

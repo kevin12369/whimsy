@@ -18,7 +18,11 @@ export interface GenerateRequestBody {
   text: string;
   genre?: 'platformer' | 'shooter' | 'puzzle' | 'auto';
   locale?: 'en' | 'zh';
-  model?: 'workers-ai-llama' | 'deepseek-coder-v2' | 'gemini-2.0-flash' | 'claude-sonnet-4';
+  model?: 'workers-ai-llama' | 'deepseek-coder-v2' | 'gemini-2.0-flash' | 'claude-sonnet-4' | 'ollama' | 'openai-compatible';
+  localBaseUrl?: string;
+  localModel?: string;
+  localApiKey?: string;
+  localTimeoutMs?: number;
 }
 
 export interface GenerateResponseBody {

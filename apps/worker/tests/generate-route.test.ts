@@ -26,4 +26,54 @@ describe('POST /api/generate', () => {
     const res = await app.request('http://x/api/generate', { method: 'POST', body: JSON.stringify({ text: 'x' }) }, { ...makeBindings(), QUOTA: kv } as any);
     expect(res.status).toBe(429);
   });
+
+  it('routes ollama model to OllamaProvider when localBaseUrl set', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      text: async () => '',
+      json: async () => ({ response: `<!DOCTYPE html><html>${OK}</html>`, prompt_eval_count: 1, eval_count: 1 }),
+    });
+    const originalFetch = globalThis.fetch;
+    (globalThis as any).fetch = fetchMock;
+    try {
+      const res = await app.request('http://x/api/generate', {
+        method: 'POST',
+        body: JSON.stringify({
+          text: 'x',
+          model: 'ollama',
+          localBaseUrl: 'http://localhost:11434',
+          localModel: 'llama3.1:8b',
+        }),
+      }, makeBindings() as any);
+      expect(res.status).toBe(200);
+      expect(fetchMock).toHaveBeenCalled();
+      const calledUrl = fetchMock.mock.calls[0][0];
+      expect(calledUrl).toBe('http://localhost:11434/api/generate');
+    } finally {
+      (globalThis as any).fetch = originalFetch;
+    }
+  });
+
+  it('rejects ollama without localBaseUrl', async () => {
+    const res = await app.request('http://x/api/generate', {
+      method: 'POST',
+      body: JSON.stringify({ text: 'x', model: 'ollama' }),
+    }, makeBindings() as any);
+    expect(res.status).toBe(400);
+    const j = await res.json() as { error?: string };
+    expect(String(j.error)).toMatch(/baseUrl/);
+  });
+
+  it('rejects localBaseUrl with file:// protocol (SSRF guard)', async () => {
+    const res = await app.request('http://x/api/generate', {
+      method: 'POST',
+      body: JSON.stringify({
+        text: 'x',
+        model: 'ollama',
+        localBaseUrl: 'file:///etc/passwd',
+      }),
+    }, makeBindings() as any);
+    expect(res.status).toBe(400);
+  });
 });
