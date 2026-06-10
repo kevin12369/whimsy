@@ -3,6 +3,11 @@ import { useState } from 'react';
 export interface InputFormPayload {
   text: string;
   genre: 'platformer' | 'shooter' | 'puzzle' | 'auto';
+  model?: 'workers-ai-llama' | 'deepseek-coder-v2' | 'gemini-2.0-flash' | 'claude-sonnet-4' | 'ollama' | 'openai-compatible';
+  localBaseUrl?: string;
+  localModel?: string;
+  localApiKey?: string;
+  localTimeoutMs?: number;
 }
 
 export interface InputFormProps {
@@ -19,8 +24,24 @@ export function InputForm({ onSubmit, disabled }: InputFormProps) {
     e.preventDefault();
     if (!text.trim() || busy || disabled) return;
     setBusy(true);
-    try { await onSubmit({ text: text.trim(), genre }); }
-    finally { setBusy(false); }
+    try {
+      const ls = typeof localStorage !== 'undefined' ? localStorage : null;
+      const useLocal = ls?.getItem('whimsy:useLocal') === 'true';
+      const provider = ls?.getItem('whimsy:local:provider');
+      const payload: InputFormPayload = { text: text.trim(), genre };
+      if (useLocal && (provider === 'ollama' || provider === 'openai-compatible')) {
+        payload.model = provider;
+        const baseUrl = ls?.getItem('whimsy:local:baseUrl');
+        if (baseUrl) payload.localBaseUrl = baseUrl;
+        const lm = ls?.getItem('whimsy:local:model');
+        if (lm) payload.localModel = lm;
+        const key = ls?.getItem('whimsy:local:apiKey');
+        if (key) payload.localApiKey = key;
+        const t = ls?.getItem('whimsy:local:timeoutMs');
+        if (t) payload.localTimeoutMs = Number(t);
+      }
+      await onSubmit(payload);
+    } finally { setBusy(false); }
   }
 
   return (
