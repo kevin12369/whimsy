@@ -109,6 +109,76 @@
 
 ---
 
+## 本地 LLM (Local LLM)
+
+默认走 Cloudflare Workers AI 免费额度,但**Whimsy 也支持把生成路由到本机 LLM 服务**。这种用法下,prompt 不会离开你的机器,也不会消耗 Cloudflare 配额。适合:
+
+- **零配额消耗** — 不吃 Workers AI 每天的免费 neuron 额度
+- **隐私** — prompt 和游戏代码都只在本地流转
+- **自定义模型** — 用你 fine-tune 过的 LoRA / 量化模型
+- **重度/自动化** — 跑批、做 benchmark、自建 demo 站
+
+### 支持的本地 backend
+
+| Backend | 默认 baseUrl | 协议 |
+|---------|--------------|------|
+| [Ollama](https://ollama.com) | `http://localhost:11434` | Ollama 原生 (`/api/generate`) |
+| [LM Studio](https://lmstudio.ai) | `http://localhost:1234/v1` | OpenAI 兼容 |
+| [vLLM](https://docs.vllm.ai) | `http://localhost:8000/v1` | OpenAI 兼容 |
+| [llama.cpp server](https://github.com/ggerganov/llama.cpp) | `http://localhost:8080/v1` | OpenAI 兼容 |
+
+### 快速启动
+
+1. 装好本机 LLM 服务,任选其一:
+
+   ```bash
+   # Ollama
+   curl -fsSL https://ollama.com/install.sh | sh
+   ollama pull llama3.1:8b
+   ollama serve    # 监听 http://localhost:11434
+
+   # LM Studio
+   # 从 lmstudio.ai 下载,搜索并下载模型,在 Developer 标签点 "Start Server"
+   # (默认端口 1234)
+
+   # vLLM
+   pip install vllm
+   python -m vllm.entrypoints.openai.api_server --model Qwen/Qwen2.5-Coder-7B-Instruct
+
+   # llama.cpp
+   ./server -m model.gguf --host 0.0.0.0 --port 8080
+   ```
+
+2. 打开 Whimsy Web → **Settings** → **Local LLM** 卡片:
+   - 选 Provider(Ollama / OpenAI Compatible)
+   - 选/填 Base URL(下拉里给了 4 个常用 preset,不够可以手填)
+   - 填 Model 名(你本机装的模型,例如 `llama3.1:8b`)
+   - 可选 API Key / Timeout(默认 30s,大型模型可调到 120s)
+   - 点 **Test connection**,看到 "Connected" 即通
+
+3. 主页右上角 toggle 切到 **Local**(按钮变绿),再点 Generate 就走本地 LLM。
+
+### 推荐模型
+
+这些 Whimsy 实际试过、生成 Phaser 3 游戏代码比较稳的:
+
+- **`llama3.1:8b`** (Ollama) — 通用不错,约 5GB 内存
+- **`qwen2.5-coder:7b`** (Ollama) — 代码生成最强,约 5GB 内存
+- **`deepseek-coder-v2:16b`** (Ollama) — 最强但吃资源,约 10GB 内存
+- **`qwen2.5-coder-7b-instruct`** (vLLM / LM Studio) — Ollama 之外的等价选择
+
+不是硬性推荐 — Settings 里 Model 字段是自由文本,你装啥就用啥。
+
+### 注意事项
+
+- **本地不是免费** — 你烧的是 CPU/GPU 时间和电费,不是美元;但 Cloudflare 配额记 0
+- **不走 Cloudflare neuron 计数** — KV quota 只增 `local: 1`,不消耗 4 个云端 provider 的额度
+- **默认 30s 超时** — 小模型够,大模型(16B+) 建议调到 60-120s(Settings 里改)
+- **沙盒照常生效** — 本地 LLM 生成的代码一样过 denylist + 200KB 体积 + iframe `sandbox="allow-scripts"`,**不会**因为"信任本地"就放行
+- **baseUrl 仅限 http(s)** — `file://` / `ftp://` 会被 400 挡掉(SSRF 防护)
+
+---
+
 ## 项目亮点
 
 **做了什么**
