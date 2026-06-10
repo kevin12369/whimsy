@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { LocalProviderCard } from './LocalProviderCard';
 
 const MODELS = [
   { id: 'workers-ai-llama', label: 'Workers AI (free, simple games)' },
@@ -36,6 +37,9 @@ export function SettingsDrawer({ open, onClose }: SettingsDrawerProps) {
         <input id="key-in" type="password" value={apiKey} onChange={(e) => saveKey(e.target.value)}
           className="rounded bg-zinc-800 border border-zinc-700 px-2 py-1" />
         <p className="text-xs text-zinc-500 mt-2">Your key is never sent to our servers except as the X-Api-Key header for the chosen provider.</p>
+        <div className="border-t border-zinc-800 pt-3 mt-2">
+          <LocalProviderCard />
+        </div>
       </div>
     </div>
   );
