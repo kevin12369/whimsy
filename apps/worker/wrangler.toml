@@ -1,0 +1,25 @@
+name = "whimsy-api"
+main = "src/index.ts"
+compatibility_date = "2025-05-01"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "whimsy"
+database_id = "REPLACE_WITH_REAL_D1_ID"
+
+[[r2_buckets]]
+binding = "GAMES"
+bucket_name = "games"
+
+[[kv_namespaces]]
+binding = "QUOTA"
+id = "REPLACE_WITH_REAL_KV_ID"
+
+[vars]
+DEFAULT_MODEL = "workers-ai-llama"
+CSP_REPORT_ONLY = "false"
+
+# Secrets set via `wrangler secret put`:
+#   CF_API_TOKEN
+#   DEEPSEEK_API_KEY
+#   GEMINI_API_KEY
