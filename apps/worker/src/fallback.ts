@@ -1,6 +1,6 @@
 import { PLATFORMER_TEMPLATES, SHOOTER_TEMPLATES, PUZZLE_TEMPLATES } from '@whimsy/templates';
-import type { Genre, Theme } from '@whimsy/prompt';
-import type { Template } from '@whimsy/templates';
+import type { Genre } from '@whimsy/prompt';
+import type { Template, Theme } from '@whimsy/templates';
 
 const DEFAULT_THEME: Theme = {
   primary: '#3aa6ff', secondary: '#ffffff', playerLabel: 'player', enemyLabel: 'enemy', flavorText: '',
