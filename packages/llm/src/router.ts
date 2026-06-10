@@ -4,7 +4,10 @@ import { WorkersAiProvider } from './providers/workers-ai';
 import { DeepSeekProvider } from './providers/deepseek';
 import { GeminiProvider } from './providers/gemini';
 import { AnthropicProvider } from './providers/anthropic';
+import { OllamaProvider } from './providers/ollama';
+import { OpenAiCompatibleProvider } from './providers/openai-compatible';
 import { LlmError } from './errors';
+import { validateLocalBaseUrl } from './base-url';
 
 export interface LlmEnv {
   CF_ACCOUNT_ID?: string;
@@ -14,7 +17,18 @@ export interface LlmEnv {
   USER_ANTHROPIC_KEY?: string;
 }
 
-export function pickProvider(model: Model, env: LlmEnv): Provider {
+export interface LocalProviderOpts {
+  baseUrl: string;
+  apiKey?: string;
+  timeoutMs?: number;
+  model: string;       // user-supplied (e.g. 'llama3.1:8b')
+}
+
+export function pickProvider(
+  model: Model,
+  env: LlmEnv,
+  local?: LocalProviderOpts,
+): Provider {
   switch (model) {
     case 'workers-ai-llama': {
       if (!env.CF_ACCOUNT_ID || !env.CF_API_TOKEN) {
@@ -40,9 +54,15 @@ export function pickProvider(model: Model, env: LlmEnv): Provider {
       }
       return new AnthropicProvider(env.USER_ANTHROPIC_KEY);
     }
-    case 'ollama':
+    case 'ollama': {
+      if (!local?.baseUrl) throw new LlmError('router', 'local.baseUrl required for ollama', false);
+      validateLocalBaseUrl(local.baseUrl);
+      return new OllamaProvider(local.baseUrl, local.model, local.timeoutMs ?? 30000);
+    }
     case 'openai-compatible': {
-      throw new LlmError('router', `Local model "${model}" not yet supported (planned for upcoming task)`, false);
+      if (!local?.baseUrl) throw new LlmError('router', 'local.baseUrl required for openai-compatible', false);
+      validateLocalBaseUrl(local.baseUrl);
+      return new OpenAiCompatibleProvider(local.baseUrl, local.model, local.apiKey, local.timeoutMs ?? 30000);
     }
     default: {
       const _exhaustive: never = model;

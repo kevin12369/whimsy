@@ -1,8 +1,11 @@
 export type { Provider } from './provider';
 export type { Model, GenerateRequest, GenerateResult } from './types';
-export { pickProvider, type LlmEnv } from './router';
+export { pickProvider, type LlmEnv, type LocalProviderOpts } from './router';
 export { WorkersAiProvider } from './providers/workers-ai';
 export { DeepSeekProvider } from './providers/deepseek';
 export { GeminiProvider } from './providers/gemini';
 export { AnthropicProvider } from './providers/anthropic';
+export { OllamaProvider } from './providers/ollama';
+export { OpenAiCompatibleProvider } from './providers/openai-compatible';
+export { validateLocalBaseUrl } from './base-url';
 export { LlmError, QuotaExceeded } from './errors';
