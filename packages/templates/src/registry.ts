@@ -1,4 +1,5 @@
-import type { Template } from './types';
+import type { Template, Theme } from './types';
+import type { Genre } from '@whimsy/prompt';
 import { PLATFORMER_TEMPLATES } from './platformer';
 import { SHOOTER_TEMPLATES } from './shooter';
 import { PUZZLE_TEMPLATES } from './puzzle';
@@ -15,7 +16,9 @@ export function getTemplate(id: string): Template | undefined {
   return BY_ID.get(id);
 }
 
-export function getAllTemplates(): Record<string, Template[]> {
+export type TemplatesByGenre = Record<Exclude<Genre, 'auto'>, Template[]>;
+
+export function getAllTemplates(): TemplatesByGenre {
   return {
     platformer: PLATFORMER_TEMPLATES,
     shooter: SHOOTER_TEMPLATES,
