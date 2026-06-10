@@ -5,7 +5,7 @@
 [![Status](https://img.shields.io/badge/status-MVP_shipped-brightgreen)](#)
 [![License](https://img.shields.io/badge/license-MIT-blue)](#)
 [![Stack](https://img.shields.io/badge/stack-Cloudflare_Workers-F38020?logo=cloudflare)](#)
-[![Tests](https://img.shields.io/badge/tests-164_passing-brightgreen)](#)
+[![Tests](https://img.shields.io/badge/tests-190_passing-brightgreen)](#)
 
 ---
 
@@ -189,12 +189,13 @@
 - 自迭代状态机:LLM 输出失败 → 把错误塞回 prompt 让 LLM 改 → 最多 2 轮 → 失败用模板兜底
 - LLM_KILL_SWITCH:env var `LLM_KILL_SWITCH=true` 跳过所有 LLM 调用,直接给模板,用于成本应急
 - 4 个 LLM provider 抽象:Workers AI(默认,免费)/ DeepSeek / Gemini / Anthropic(BYOK)
+- 2 个本地 LLM provider 抽象:Ollama 原生协议 + OpenAI 兼容协议(覆盖 LM Studio / vLLM / llama.cpp / LocalAI),配 baseUrl SSRF 防护 + 30s 可调超时
 - Pages Functions 代理层(`/api/*` → Worker)加 CORS + 可选 rate-limit
 
 **怎么做到的**
 
 - `packages/prompt` — 纯 TS prompt 构建器,`buildPrompt(input)` 输出 system + user prompt,无外部依赖
-- `packages/llm` — `Provider` interface + 4 个实现(workers-ai/deepseek/gemini/anthropic),`pickProvider(model)` 路由
+- `packages/llm` — `Provider` interface + 6 个实现(workers-ai/deepseek/gemini/anthropic + ollama + openai-compatible),`pickProvider(model, env, local?)` 路由
 - `packages/sandbox` — `extractHtml`(剥离 markdown 围栏) + `staticAnalysis`(denylist) + `sizeCheck`(≤200 KB)
 - `packages/retry` — `runWithRetry(stateMachine, maxRetries=2)`,失败时 `buildFixPrompt(error)` 塞回上游
 - `packages/templates` — 5 平台跳跃 + 5 射击 + 5 解谜,`Template.render(theme)` 输出完整 HTML
@@ -204,9 +205,9 @@
 
 **跑起来的数字**
 
-- 164 测试通过(prompt 21 + sandbox 32 + llm 23 + retry 14 + templates 17 + worker 33 + web 24)
+- 190 测试通过(prompt 21 + sandbox 32 + llm 40 + retry 14 + templates 17 + worker 36 + web 30)
 - TypeScript strict 干净,First Load JS ≤130 kB
-- 5 风格 prompt 模板 × 15 预制游戏模板 × 4 LLM provider × 7 packages/apps
+- 5 风格 prompt 模板 × 15 预制游戏模板 × 6 LLM provider × 7 packages/apps
 
 **本地开发**
 
