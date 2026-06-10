@@ -7,5 +7,6 @@ export {
   ALLOWED_MESSAGE_TYPES,
   isAllowedMessage,
 } from './protocol';
-export type { GameMessage, GameMessageType, ValidationResult, DenylistHit } from './types';
+export type { GameMessage, GameMessageType } from './protocol';
+export type { ValidationResult, DenylistHit } from './types';
 export type { ValidationResult as SandboxValidation } from './types';
