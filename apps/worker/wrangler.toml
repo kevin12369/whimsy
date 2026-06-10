@@ -26,3 +26,19 @@ CSP_REPORT_ONLY = "false"
 
 # Set LLM_KILL_SWITCH=true to disable LLM calls and serve a pre-baked template instead.
 # Use during cost emergencies or vendor outages.
+
+[env.dev]
+name = "whimsy-api-dev"
+
+[[env.dev.d1_databases]]
+binding = "DB"
+database_name = "whimsy-dev"
+database_id = "local-d1"
+
+[[env.dev.r2_buckets]]
+binding = "GAMES"
+bucket_name = "games-dev"
+
+[[env.dev.kv_namespaces]]
+binding = "QUOTA"
+id = "local-kv"
