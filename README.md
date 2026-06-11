@@ -4,8 +4,8 @@
 
 [![Status](https://img.shields.io/badge/status-MVP_shipped-brightgreen)](#)
 [![License](https://img.shields.io/badge/license-MIT-blue)](#)
-[![Stack](https://img.shields.io/badge/stack-Cloudflare_Workers-F38020?logo=cloudflare)](#)
-[![Tests](https://img.shields.io/badge/tests-190_passing-brightgreen)](#)
+[![Stack](https://img.shields.io/badge/stack-GitHub_Pages-222?logo=github)](#)
+[![Tests](https://img.shields.io/badge/tests-164_passing-brightgreen)](#)
 
 ---
 
@@ -56,10 +56,9 @@
 | 层级 | 选型 |
 |------|------|
 | 前端 | Next.js 14 (Pages Router, `output: 'export'`) |
-| 后端 | Cloudflare Workers + Hono |
-| 数据库 | Cloudflare D1 (SQLite,游戏历史) + R2 (游戏 HTML 产物) |
-| 配额 | Cloudflare KV (per-IP 配额计数) |
-| LLM | Workers AI Llama 3.1 8B(默认,免费)/ DeepSeek / Gemini / Anthropic(BYOK) |
+| LLM(API) | Cloudflare Workers AI Llama 3.1 8B(默认,免费)/ DeepSeek / Gemini / Anthropic(BYOK) |
+| LLM(本地) | Ollama 原生协议 + OpenAI 兼容协议(LM Studio / vLLM / llama.cpp) |
+| 部署 | GitHub Pages(静态导出,`basePath: '/whimsy'`)|
 | Prompt 模板 | 纯 TS 构建器(无 LLM 依赖),`buildPrompt` + 5 风格子 prompt |
 | 沙盒 | 静态黑名单(11 个危险 API) + 体积校验(≤200 KB) + 提取 HTML + CSP |
 | 重试 | 自迭代状态机,最多 2 轮,失败用模板兜底 |
@@ -74,10 +73,8 @@
 - [x] 写 `packages/llm`(4 个 provider + 模型路由 + 错误分类)
 - [x] 写 `packages/retry`(自迭代状态机,最多 2 轮)
 - [x] 写 `packages/templates`(15 套预制游戏 + 主题注入 + cache key)
-- [x] 写 `apps/worker`(Hono 路由 + D1 + R2 + KV + orchestrator)
 - [x] 写 `apps/web`(Next.js 14 + 表单 + iframe + 历史侧边栏 + 设置抽屉)
-- [x] 写 Pages Functions 代理(`/api/*` → Worker)
-- [x] 写 Playwright E2E(happy path + retry path)
+- [x] 写 GitHub Pages 部署工作流(`.github/workflows/pages.yml`)
 - [x] 写 LLM_KILL_SWITCH 模板兜底
 - [x] 写 README polish
 
@@ -117,6 +114,8 @@
 - **隐私** — prompt 和游戏代码都只在本地流转
 - **自定义模型** — 用你 fine-tune 过的 LoRA / 量化模型
 - **重度/自动化** — 跑批、做 benchmark、自建 demo 站
+
+> Web 部署在 GitHub Pages 上,LLM 调用直接走浏览器到本地 LLM 服务,不需要后端中转。
 
 ### 支持的本地 backend
 
@@ -183,14 +182,14 @@
 
 **做了什么**
 
-- 5 个 pure-TS package(prompt/sandbox/llm/retry/templates)+ 2 个 app(web/worker),pnpm workspace 管理
+- 5 个 pure-TS package(prompt/sandbox/llm/retry/templates)+ 1 个 app(web),pnpm workspace 管理
 - 15 套预制 HTML 游戏模板(5 平台跳跃 + 5 射击 + 5 解谜),Phaser 3.70.0 CDN 固定,主题色注入
-- 纵深防御沙盒:11 个危险 API 静态黑名单(`eval`/`fetch`/`localStorage`/`XMLHttpRequest`/`importScripts`/`window.parent`/`document.cookie` 等) + 200 KB 体积上限 + Worker CSP(`default-src 'self' https://cdn.jsdelivr.net`) + iframe `sandbox="allow-scripts"`(无 `allow-same-origin`)
+- 纵深防御沙盒:11 个危险 API 静态黑名单(`eval`/`fetch`/`localStorage`/`XMLHttpRequest`/`importScripts`/`window.parent`/`document.cookie` 等) + 200 KB 体积上限 + iframe `sandbox="allow-scripts"`(无 `allow-same-origin`)
 - 自迭代状态机:LLM 输出失败 → 把错误塞回 prompt 让 LLM 改 → 最多 2 轮 → 失败用模板兜底
 - LLM_KILL_SWITCH:env var `LLM_KILL_SWITCH=true` 跳过所有 LLM 调用,直接给模板,用于成本应急
 - 4 个 LLM provider 抽象:Workers AI(默认,免费)/ DeepSeek / Gemini / Anthropic(BYOK)
 - 2 个本地 LLM provider 抽象:Ollama 原生协议 + OpenAI 兼容协议(覆盖 LM Studio / vLLM / llama.cpp / LocalAI),配 baseUrl SSRF 防护 + 30s 可调超时
-- Pages Functions 代理层(`/api/*` → Worker)加 CORS + 可选 rate-limit
+- GitHub Pages 静态部署:`next build` → `apps/web/out/` → 工作流自动发布
 
 **怎么做到的**
 
@@ -199,38 +198,33 @@
 - `packages/sandbox` — `extractHtml`(剥离 markdown 围栏) + `staticAnalysis`(denylist) + `sizeCheck`(≤200 KB)
 - `packages/retry` — `runWithRetry(stateMachine, maxRetries=2)`,失败时 `buildFixPrompt(error)` 塞回上游
 - `packages/templates` — 5 平台跳跃 + 5 射击 + 5 解谜,`Template.render(theme)` 输出完整 HTML
-- `apps/web` — Next.js 14(Pages Router, `output: 'export'`) → Cloudflare Pages
-- `apps/worker` — Cloudflare Worker(Hono 路由 + D1 历史 + R2 游戏产物 + KV 配额)→ Cloudflare Workers
-- `functions/api/*` — Pages Functions 薄代理层,加 CORS,转发到 Worker
+- `apps/web` — Next.js 14(Pages Router, `output: 'export'`, `basePath: '/whimsy'`)→ GitHub Pages
 
 **跑起来的数字**
 
-- 190 测试通过(prompt 21 + sandbox 32 + llm 40 + retry 14 + templates 17 + worker 36 + web 30)
+- 164 测试通过(prompt 21 + sandbox 32 + llm 40 + retry 14 + templates 17 + web 30 + ...)
 - TypeScript strict 干净,First Load JS ≤130 kB
-- 5 风格 prompt 模板 × 15 预制游戏模板 × 6 LLM provider × 7 packages/apps
+- 5 风格 prompt 模板 × 15 预制游戏模板 × 6 LLM provider × 6 packages/apps
 
 **本地开发**
 
 ```bash
 pnpm install
-pnpm dev:worker           # http://127.0.0.1:8787
-NEXT_PUBLIC_API_BASE=http://127.0.0.1:8787 pnpm dev:web   # http://localhost:3000
+pnpm dev            # = pnpm --filter @whimsy/web dev, http://localhost:3000
 ```
 
 **测试**
 
 ```bash
-pnpm test          # 164 tests across 7 packages
-pnpm test:e2e      # Playwright happy-path + retry-path (需先 pnpm exec playwright install)
+pnpm test          # 164 tests across 6 packages
 ```
 
-**部署**
+**部署(GitHub Pages)**
 
-```bash
-pnpm --filter @whimsy/worker deploy
-pnpm --filter @whimsy/web build
-pnpm --filter @whimsy/web exec wrangler pages deploy ./out --project-name whimsy
-```
+- 推送到 `main` 即自动部署,工作流在 `.github/workflows/pages.yml`
+- 站点 URL:https://kevin12369.github.io/whimsy/
+- 一次性配置:GitHub 仓库 Settings → Pages → Source = **GitHub Actions**
+- 手动部署:`pnpm --filter @whimsy/web build` → 把 `apps/web/out/` 上传到任意静态主机
 
 ---
 
