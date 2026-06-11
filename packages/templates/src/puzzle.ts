@@ -12,7 +12,7 @@ export const colorMatch: Template = {
 <html><head><meta charset="utf-8"><title>${theme.playerLabel} match</title>
 <style>body{margin:0;background:#111;color:#fff;font-family:sans-serif;overflow:hidden;display:flex;justify-content:center;align-items:center;height:100vh}canvas{background:#000}</style>
 </head><body>
-<canvas id="g" width="400" height="400"></canvas>
+<div id="g" style="width:400px;height:400px"></div>
 <script src="https://cdn.jsdelivr.net/npm/phaser@3.70.0/dist/phaser.min.js"></script>
 <script>
 (function(){

@@ -15,7 +15,7 @@ export const spaceComet: Template = {
 <style>body{margin:0;background:#000;color:#fff;font-family:sans-serif;overflow:hidden}canvas{display:block}</style>
 </head>
 <body>
-<canvas id="game" width="800" height="600"></canvas>
+<div id="game" style="width:800px;height:600px"></div>
 <script src="https://cdn.jsdelivr.net/npm/phaser@3.70.0/dist/phaser.min.js"></script>
 <script>
 (function(){

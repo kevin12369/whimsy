@@ -12,7 +12,7 @@ export const spaceDefender: Template = {
 <html><head><meta charset="utf-8"><title>${theme.playerLabel} defender</title>
 <style>body{margin:0;background:#000;color:#fff;font-family:sans-serif;overflow:hidden}canvas{display:block}</style>
 </head><body>
-<canvas id="g" width="800" height="600"></canvas>
+<div id="g" style="width:800px;height:600px"></div>
 <script src="https://cdn.jsdelivr.net/npm/phaser@3.70.0/dist/phaser.min.js"></script>
 <script>
 (function(){
