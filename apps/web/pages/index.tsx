@@ -1,84 +1,102 @@
-import { useEffect, useState } from 'react';
-import { useRouter } from 'next/router';
-import { InputForm, type InputFormPayload } from '../components/InputForm';
-import { HistorySidebar } from '../components/HistorySidebar';
-import { StatusBar, type Usage } from '../components/StatusBar';
-import { Toast } from '../components/Toast';
-import { SettingsDrawer } from '../components/SettingsDrawer';
-import { generate, listGames, type GameListItem } from '../lib/api-client';
+import { useMemo, useState } from 'react';
+import { GamePreview } from '../components/GamePreview';
+import { TemplateGrid } from '../components/TemplateGrid';
+import { SettingsModal } from '../components/SettingsModal';
+import { InputForm } from '../components/InputForm';
+import { useTheme } from '../lib/theme';
+import { generateWithLocalLLM, type GenerateResult } from '../lib/llm-direct';
+import { TEMPLATES, getTemplate, getAllTemplates } from '@whimsy/templates';
 
 export default function Home() {
-  const router = useRouter();
-  const [games, setGames] = useState<GameListItem[]>([]);
-  const [usage, setUsage] = useState<Usage>({ workers_ai: 0, deepseek: 0, gemini: 0, byok: 0, generations: 0, retries: 0 });
-  const [toast, setToast] = useState<string | null>(null);
-  const [showSettings, setShowSettings] = useState(false);
-  const [useLocal, setUseLocal] = useState<boolean>(false);
-  const [localLabel, setLocalLabel] = useState<string>('');
+  const { theme, setTheme } = useTheme();
+  const [currentId, setCurrentId] = useState(TEMPLATES[0]!.id);
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [showGenerator, setShowGenerator] = useState(false);
+  const [genResult, setGenResult] = useState<GenerateResult | null>(null);
+  const [genBusy, setGenBusy] = useState(false);
+  const [genError, setGenError] = useState<string | null>(null);
 
-  useEffect(() => {
-    listGames().then(r => setGames(r.games)).catch(() => setToast('Could not load history.'));
-  }, []);
+  const current = useMemo(() => getTemplate(currentId) ?? TEMPLATES[0]!, [currentId]);
+  const allByGenre = useMemo(() => getAllTemplates(), []);
 
-  useEffect(() => {
-    const ls = typeof localStorage !== 'undefined' ? localStorage : null;
-    const flag = ls?.getItem('whimsy:useLocal') === 'true';
-    setUseLocal(flag);
-    if (flag) {
-      const provider = ls?.getItem('whimsy:local:provider') ?? '';
-      const baseUrl = ls?.getItem('whimsy:local:baseUrl') ?? '';
-      setLocalLabel(`${provider} @ ${baseUrl || '(no URL)'}`);
+  // Flatten all 15 templates into one array for the grid (order: platformer, shooter, puzzle).
+  const allTemplates = useMemo(
+    () => [...allByGenre.platformer, ...allByGenre.shooter, ...allByGenre.puzzle],
+    [allByGenre],
+  );
+
+  async function onGenerate(p: { text: string; model?: 'ollama' | 'openai-compatible'; localBaseUrl?: string; localModel?: string; localApiKey?: string; localTimeoutMs?: number }) {
+    if (!p.model) {
+      setGenError('Toggle "Use local LLM" in Settings → Local LLM, then try again.');
+      return;
     }
-  }, []);
-
-  function toggleUseLocal() {
-    const next = !useLocal;
-    setUseLocal(next);
-    if (typeof localStorage !== 'undefined') {
-      localStorage.setItem('whimsy:useLocal', String(next));
-      if (next) {
-        const provider = localStorage.getItem('whimsy:local:provider') ?? '';
-        const baseUrl = localStorage.getItem('whimsy:local:baseUrl') ?? '';
-        setLocalLabel(`${provider} @ ${baseUrl || '(no URL)'}`);
-      }
-    }
-  }
-
-  async function onSubmit(p: InputFormPayload) {
-    setToast('Generating…');
+    setGenBusy(true);
+    setGenError(null);
+    setGenResult(null);
     try {
-      const r = await generate(p);
-      if (r.status === 'ok' && r.url) router.push(`/play/${r.id}/`);
-      else setToast(r.error ?? 'Could not generate — try rephrasing.');
+      const r = await generateWithLocalLLM(p);
+      setGenResult(r);
     } catch (e) {
-      setToast('Network error. Try again.');
+      setGenError((e as Error).message);
+    } finally {
+      setGenBusy(false);
     }
   }
 
   return (
-    <div className="min-h-screen flex flex-col">
+    <div className="min-h-screen flex flex-col bg-zinc-950 text-zinc-100">
       <header className="px-4 py-3 flex items-center border-b border-zinc-800">
         <h1 className="text-lg font-semibold">Whimsy — 一念成游</h1>
-        <button
-          onClick={toggleUseLocal}
-          className={`ml-4 text-xs px-2 py-1 rounded border ${useLocal ? 'border-emerald-500 text-emerald-300 bg-emerald-900/20' : 'border-zinc-700 text-zinc-500'}`}
-        >
-          {useLocal ? `Local: ${localLabel}` : 'Cloud'}
-        </button>
-        <button onClick={() => setShowSettings(true)} className="ml-auto text-sm text-zinc-300 hover:text-white">Settings</button>
+        <span className="ml-3 text-xs text-zinc-500">15 pre-baked Phaser 3 games · theme live</span>
+        <div className="ml-auto flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => setShowGenerator((v) => !v)}
+            className="text-xs text-zinc-400 hover:text-white border border-zinc-700 rounded px-2 py-1"
+          >
+            {showGenerator ? 'Hide generator' : 'Generate (local LLM)'}
+          </button>
+          <button
+            type="button"
+            onClick={() => setSettingsOpen(true)}
+            aria-label="Open settings"
+            className="text-sm text-zinc-300 hover:text-white"
+          >
+            ⚙
+          </button>
+        </div>
       </header>
-      <main className="flex-1 flex">
-        <section className="flex-1 p-6 flex flex-col items-center justify-center">
-          <InputForm onSubmit={onSubmit} />
+
+      <main className="flex-1 flex flex-col">
+        {/* Big preview: 70vh, fills the page */}
+        <section className="h-[70vh] w-full bg-black">
+          <GamePreview template={current} theme={theme} />
         </section>
-        <aside className="w-80 border-l border-zinc-800 overflow-y-auto">
-          <h2 className="text-sm uppercase text-zinc-500 px-3 py-2">Recent games</h2>
-          <HistorySidebar games={games} />
-        </aside>
+
+        {/* Optional generator panel (collapsed by default) */}
+        {showGenerator && (
+          <section className="px-4 py-3 border-t border-zinc-800 bg-zinc-900/50">
+            <InputForm onSubmit={onGenerate} disabled={genBusy} />
+            {genError && <p className="mt-2 text-xs text-red-300">⚠ {genError}</p>}
+            {genResult?.ok && (
+              <p className="mt-2 text-xs text-emerald-300">✓ Generated {genResult.bytes} bytes. (Preview-only on GitHub Pages — paste the HTML into a local file to play.)</p>
+            )}
+          </section>
+        )}
+
+        {/* 14 thumbnails strip */}
+        <section className="border-t border-zinc-800">
+          <h2 className="text-xs uppercase text-zinc-500 px-3 pt-2">Other templates</h2>
+          <TemplateGrid templates={allTemplates} currentId={currentId} onSelect={setCurrentId} />
+        </section>
       </main>
-      <StatusBar usage={usage} />
-      <Toast message={toast} />
-      <SettingsDrawer open={showSettings} onClose={() => setShowSettings(false)} />
+
+      <SettingsModal
+        open={settingsOpen}
+        onClose={() => setSettingsOpen(false)}
+        theme={theme}
+        onThemeChange={setTheme}
+      />
     </div>
   );
 }
