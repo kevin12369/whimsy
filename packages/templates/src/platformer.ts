@@ -32,7 +32,7 @@ export const spaceComet: Template = {
   function preload(){}
   function create(){
     this.add.rectangle(400,580,800,40,0x444444).setOrigin(0.5,0.5);
-    player = this.physics.add.rectangle(100,500,32,32,parseInt(COLOR.slice(1),16));
+    player = this.add.rectangle(100,500,32,32,parseInt(COLOR.slice(1),16)); this.physics.add.existing(player);
     this.physics.add.collider(player, this.add.rectangle(400,580,800,40,0x444444));
     cursors = this.input.keyboard.createCursorKeys();
     stars = this.physics.add.group({ key: 'star', repeat: 8, setXY: { x: 200, y: 0, stepX: 70 } });

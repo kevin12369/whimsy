@@ -20,7 +20,7 @@ export const spaceDefender: Template = {
   new Phaser.Game({type:Phaser.AUTO,parent:'g',width:800,height:600,
     scene:{create(){
       this.add.rectangle(400,580,800,20,0x222222);
-      const ship=this.physics.add.rectangle(400,540,32,32,parseInt(COLOR.slice(1),16));
+      const ship=this.add.rectangle(400,540,32,32,parseInt(COLOR.slice(1),16)); this.physics.add.existing(ship);
       const bullets=this.physics.add.group();
       const enemies=this.physics.add.group();
       let score=0; const txt=this.add.text(16,16,'Score: 0',{fontSize:'20px',fill:'#fff'});
