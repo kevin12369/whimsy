@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import Link from 'next/link';
 import { GamePreview } from '../components/GamePreview';
 import { TemplateGrid } from '../components/TemplateGrid';
 import { SettingsModal } from '../components/SettingsModal';
@@ -49,6 +50,12 @@ export default function Home() {
         <h1 className="text-lg font-semibold">Whimsy — 一念成游</h1>
         <span className="ml-3 text-xs text-zinc-500">15 pre-baked Phaser 3 games · theme live</span>
         <div className="ml-auto flex items-center gap-2">
+          <Link
+            href="/portfolio"
+            className="text-xs text-zinc-400 hover:text-white border border-zinc-700 rounded px-2 py-1"
+          >
+            About
+          </Link>
           <button
             type="button"
             onClick={() => setShowGenerator((v) => !v)}
