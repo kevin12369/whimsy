@@ -2,10 +2,21 @@
 
 > **一句话生成一个可玩的、可分享的 2D 小游戏。/ One sentence to a playable 2D game.**
 
-[![Status](https://img.shields.io/badge/status-MVP_shipped-brightgreen)](#)
-[![License](https://img.shields.io/badge/license-MIT-blue)](#)
-[![Stack](https://img.shields.io/badge/stack-GitHub_Pages-222?logo=github)](#)
+[![CI](https://github.com/kevin12369/whimsy/actions/workflows/ci.yml/badge.svg)](https://github.com/kevin12369/whimsy/actions/workflows/ci.yml)
 [![Tests](https://img.shields.io/badge/tests-164_passing-brightgreen)](#)
+[![Deploy](https://img.shields.io/badge/deploy-live-brightgreen)](https://kevin12369.github.io/whimsy/)
+
+---
+
+## About this project
+
+一念成游 · Whimsy 让你用一句中文描述脑海里的游戏画面,在 15 秒内拿到一个真的能玩的 Phaser 3 小游戏 HTML。15 套预制模板 0 成本兜底,LLM 输出经纵深防御沙盒校验后丢进 iframe。
+
+See the **[portfolio page](https://kevin12369.github.io/whimsy/portfolio)** for screenshots, what it does, and how to run it locally.
+
+- **Live demo**: [https://kevin12369.github.io/whimsy/](https://kevin12369.github.io/whimsy/) (preview only — needs your local LLM to actually run generation)
+- **Source code**: [github.com/kevin12369/whimsy](https://github.com/kevin12369/whimsy)
+- **Run locally**: [RUN-LOCALLY.md](https://github.com/kevin12369/whimsy/blob/main/docs/RUN-LOCALLY.md) — 5 steps, ~10 min
 
 ---
 
