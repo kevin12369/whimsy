@@ -9,6 +9,12 @@ const DESCRIPTION =
   '自迭代状态机让失败的代码 2 轮内自动修好。';
 const GITHUB_URL = 'https://github.com/kevin12369/whimsy';
 const DEMO_URL = 'https://kevin12369.github.io/whimsy/';
+const IMAGE_SRC = '/whimsy/docs/img/main.png';
+const OTHER_PROJECTS = [
+  { name: '嘴笨助手 Sry', desc: '5 风格道歉信生成器', href: 'https://github.com/kevin12369/sry' },
+  { name: '一念成游 Whimsy', desc: 'AI 2D 小游戏生成器', href: 'https://github.com/kevin12369/whimsy' },
+  { name: '哼哼编曲 Hummingbird', desc: '哼唱→MIDI 编曲', href: 'https://github.com/kevin12369/hummingbird' },
+];
 
 export default function Portfolio() {
   return (
@@ -24,9 +30,10 @@ export default function Portfolio() {
         </header>
         <section className="rounded border border-zinc-800 overflow-hidden">
           <img
-            src="/docs/img/main.png"
+            src={IMAGE_SRC}
             alt={`${NAME} demo screenshot`}
             className="w-full"
+            loading="lazy"
           />
         </section>
         <section className="prose prose-invert max-w-none">
@@ -60,9 +67,11 @@ export default function Portfolio() {
           </ul>
           <h2>Other projects in this portfolio</h2>
           <ul>
-            <li><a href="https://kevin12369.github.io/sry/" target="_blank" rel="noreferrer">嘴笨助手 Sry</a> — 5 风格道歉信生成器</li>
-            <li><a href="https://kevin12369.github.io/whimsy/portfolio" target="_blank" rel="noreferrer">一念成游 Whimsy</a> — AI 2D 小游戏生成器</li>
-            <li><a href="https://kevin12369.github.io/hummingbird/" target="_blank" rel="noreferrer">哼哼编曲 Hummingbird</a> — 哼唱→MIDI 编曲</li>
+            {OTHER_PROJECTS.map((p) => (
+              <li key={p.href}>
+                <a href={p.href} target="_blank" rel="noopener noreferrer">{p.name}</a> — {p.desc}
+              </li>
+            ))}
           </ul>
         </section>
         <footer>
