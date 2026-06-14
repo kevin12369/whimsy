@@ -14,9 +14,9 @@ describe('registry', () => {
   });
 
   it('getTemplate returns a template by id', () => {
-    const t = getTemplate('platformer-space-comet');
+    const t = getTemplate('platformer-side-scroller-comet');
     expect(t).toBeDefined();
-    expect(t!.id).toBe('platformer-space-comet');
+    expect(t!.id).toBe('platformer-side-scroller-comet');
   });
 
   it('getTemplate returns undefined for unknown id', () => {

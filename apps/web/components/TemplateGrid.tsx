@@ -15,6 +15,7 @@ export function TemplateGrid({ templates, currentId, onSelect }: TemplateGridPro
           key={t.id}
           type="button"
           onClick={() => onSelect(t.id)}
+          title={t.defaultTheme.flavorText}
           className="rounded border border-zinc-700 bg-zinc-900 p-2 text-left hover:border-zinc-500 transition-colors"
         >
           <div
@@ -23,7 +24,10 @@ export function TemplateGrid({ templates, currentId, onSelect }: TemplateGridPro
             aria-hidden
           />
           <div className="text-xs font-medium text-zinc-100 truncate">{t.name}</div>
-          <div className="text-[10px] text-zinc-500 uppercase">{t.genre}</div>
+          <div className="text-[10px] text-zinc-500 uppercase mb-1">{t.genre}</div>
+          <div className="text-[11px] text-zinc-400 italic line-clamp-2 leading-tight">
+            {t.defaultTheme.flavorText}
+          </div>
         </button>
       ))}
     </div>

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { PLATFORMER_TEMPLATES, spaceComet } from '../src/platformer';
+import { PLATFORMER_TEMPLATES, sideScrollerComet } from '../src/platformer';
 
 describe('platformer templates', () => {
   it('exports 5 templates', () => {
@@ -11,22 +11,29 @@ describe('platformer templates', () => {
     expect(new Set(ids).size).toBe(ids.length);
   });
 
-  it('spaceComet render returns a complete HTML doc with substituted theme', () => {
-    const html = spaceComet.render({
+  it('sideScrollerComet render returns a complete HTML doc with substituted theme', () => {
+    const html = sideScrollerComet.render({
       primary: '#3aa6ff', secondary: '#ffffff', playerLabel: 'comet', enemyLabel: 'asteroid', flavorText: '',
     });
     expect(html.startsWith('<!DOCTYPE html>')).toBe(true);
     expect(html.endsWith('</html>')).toBe(true);
-    expect(html).toContain('#3aa6ff');
     expect(html).toContain('comet');
+    // Color is rendered as a hex int: #3aa6ff = 0x3aa6ff = 3843839
+    expect(html).toContain('3843839');
   });
 
-  it('spaceComet contains Phaser and keyboard handler', () => {
-    const html = spaceComet.render({
+  it('sideScrollerComet contains Phaser and keyboard handler', () => {
+    const html = sideScrollerComet.render({
       primary: '#3aa6ff', secondary: '#ffffff', playerLabel: 'comet', enemyLabel: 'asteroid', flavorText: '',
     });
     expect(html).toContain('cdn.jsdelivr.net');
     expect(html).toContain('phaser');
     expect(html).toContain('keydown');
+  });
+
+  it('every platformer template has a flavorText', () => {
+    for (const t of PLATFORMER_TEMPLATES) {
+      expect(t.defaultTheme.flavorText.length).toBeGreaterThan(5);
+    }
   });
 });

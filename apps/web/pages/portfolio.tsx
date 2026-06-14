@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import Head from 'next/head';
+import { DemoVideo } from '../components/DemoVideo';
 
 const NAME = '一念成游 · Whimsy';
 const TAGLINE = '一句话开 game jam';
@@ -30,6 +31,9 @@ export default function Portfolio() {
           <h2 className="text-xl text-zinc-300 mt-2">{TAGLINE}</h2>
           <p className="text-zinc-400 mt-1">{SUBTITLE}</p>
         </header>
+        <DemoVideo
+          caption="30 秒录屏:开页 → 输入 prompt → 跑出游戏 → 复制链接 → 隐身窗打开"
+        />
         <section className="rounded border border-zinc-800 overflow-hidden">
           <img
             src={IMAGE_SRC}
@@ -43,10 +47,11 @@ export default function Portfolio() {
           <h2>What you can do here</h2>
           <ul>
             <li>描述一个玩法 → 15 秒拿到可玩的 Phaser 3 游戏 HTML</li>
-            <li>15 套预制模板无 LLM 调用 0 成本兜底</li>
-            <li>主题色 / 玩家 / 敌人标签在生成前可调,prompt 跟着变</li>
+            <li>15 套预制模板无 LLM 调用 0 成本兜底(5 平台跳跃 + 5 射击 + 5 解谜,机制各异)</li>
+            <li>主题色 / 玩家 / 敌人标签在生成前可调,prompt 跟着变;预设可保存复用</li>
             <li>本地 LLM( Ollama / LM Studio / vLLM / llama.cpp)一键切换,prompt 不离机</li>
             <li>纵深防御沙盒:11 个危险 API 黑名单 + 200KB 体积 + iframe sandbox</li>
+            <li>3 按钮工具栏:复制 Phaser 代码 / 导出 HTML / 改一行重生成</li>
           </ul>
           <h2>How to run it for real</h2>
           <p>The live demo above is a portfolio preview. To run the real deal:</p>

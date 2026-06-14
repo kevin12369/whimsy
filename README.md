@@ -3,8 +3,14 @@
 > **一句话开 game jam — 30 秒拿 5 个 Phaser 变体,挑一个导出源码接着改。/ One sentence to a Game Jam starter.**
 
 [![CI](https://github.com/kevin12369/whimsy/actions/workflows/ci.yml/badge.svg)](https://github.com/kevin12369/whimsy/actions/workflows/ci.yml)
-[![Tests](https://img.shields.io/badge/tests-164_passing-brightgreen)](#)
+[![Tests](https://img.shields.io/badge/tests-205_passing-brightgreen)](#)
 [![Deploy](https://img.shields.io/badge/deploy-live-brightgreen)](https://kevin12369.github.io/whimsy/)
+
+## 30s Demo
+
+<a href="https://kevin12369.github.io/whimsy/portfolio"><img src="docs/img/main.png" alt="30s demo (mp4 not embedded in README; click for live)" width="720"/></a>
+
+[Watch on the portfolio page →](https://kevin12369.github.io/whimsy/portfolio) (autoplay muted loop, 30s walk-through)
 
 ---
 
@@ -44,11 +50,47 @@ See the **[portfolio page](https://kevin12369.github.io/whimsy/portfolio)** for 
 
 - 用户在表单填"我想玩什么游戏" → 15 秒后右侧 iframe 真在跑 Phaser 3
 - 主题色/玩家/敌人标签可在生成前调整 → LLM prompt 跟着变
-- 15 套预制模板(5 平台跳跃 + 5 射击 + 5 解谜),无 LLM 调用 0 成本兜底
+- 15 套预制模板(5 平台跳跃 + 5 射击 + 5 解谜,**机制各异**),无 LLM 调用 0 成本兜底
+- 工具栏 3 按钮:复制 Phaser 代码 / 导出 HTML / 改一行重生成
+- 主题预设保存到 localStorage,下次生成复用
 - 一键分享:游戏 HTML 存 R2,给你一个 `/g/<id>` 短链
 - 历史侧边栏:你生成过的所有游戏都在
 - BYOK(自带 API 钥):Workers AI 免费额度用完了,接 DeepSeek/Gemini/Anthropic 自己的 key
 - 伦理/成本护栏常驻顶部:"不替你做游戏设计,只帮你起 demo"
+
+## 15 套预制模板
+
+每套 render() 字节级独立(由 `diversity.test.ts` hash 断言保证):
+
+### 平台跳跃 (5)
+
+| ID | 名称 | 机制 |
+|----|------|------|
+| `platformer-side-scroller-comet` | Side-Scroller Comet | 横版滚屏 + 跳 + 3 条命 |
+| `platformer-vertical-climber` | Vertical Climber | 垂直向上 + 平台跳 + 掉下 GG |
+| `platformer-auto-runner` | Auto Runner | 自动向右 + 点跳躲仙人掌 |
+| `platformer-single-screen-puzzle` | Single-Screen Puzzle | 单屏平台解谜 + 到顶门 |
+| `platformer-double-jump-precision` | Double-Jump Precision | 双跳精度 + 20s 8 浮岛 |
+
+### 射击 (5)
+
+| ID | 名称 | 机制 |
+|----|------|------|
+| `shooter-twin-stick-battler` | Twin-Stick Battler | WASD 移 + 鼠标瞄 |
+| `shooter-vertical-shmup` | Vertical Shmup | 纵向弹幕 + 自动射击 |
+| `shooter-bullet-hell` | Bullet Hell | 固定自机 + 放射子弹 |
+| `shooter-tower-defense` | Tower Defense | 底部放塔 + 上方刷怪 |
+| `shooter-target-shooting-gallery` | Target Shooting Gallery | 固定机位 + 30s 30 靶 |
+
+### 解谜 (5)
+
+| ID | 名称 | 机制 |
+|----|------|------|
+| `puzzle-tile-match` | Tile Match | 同色连线消除 4×4 |
+| `puzzle-sokoban` | Sokoban | 推箱子到目标点 |
+| `puzzle-lights-out` | Lights Out | 点格翻转邻接 + 全灭赢 |
+| `puzzle-number-link` | Number Link | 同数字首尾连不交叉 |
+| `puzzle-sliding-15` | Sliding-15 | 15 数字华容道 |
 
 ---
 
@@ -213,7 +255,7 @@ See the **[portfolio page](https://kevin12369.github.io/whimsy/portfolio)** for 
 
 **跑起来的数字**
 
-- 164 测试通过(prompt 21 + sandbox 32 + llm 40 + retry 14 + templates 17 + web 30 + ...)
+- 215 测试通过(prompt 21 + sandbox 32 + llm 40 + retry 14 + templates 17 + diversity 5 + web 30 + ...)
 - TypeScript strict 干净,First Load JS ≤130 kB
 - 5 风格 prompt 模板 × 15 预制游戏模板 × 6 LLM provider × 6 packages/apps
 
@@ -227,7 +269,7 @@ pnpm dev            # = pnpm --filter @whimsy/web dev, http://localhost:3000
 **测试**
 
 ```bash
-pnpm test          # 164 tests across 6 packages
+pnpm test          # 215 tests across 6 packages
 ```
 
 **部署(GitHub Pages)**

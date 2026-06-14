@@ -33,7 +33,7 @@ describe('ThemePanel', () => {
     const onChange = vi.fn();
     const current: Theme = { primary: '#111', secondary: '#222', playerLabel: 'x', enemyLabel: 'y', flavorText: 'z' };
     render(<ThemePanel theme={current} onChange={onChange} />);
-    fireEvent.click(screen.getByRole('button', { name: /reset/i }));
+    fireEvent.click(screen.getByRole('button', { name: /reset to default/i }));
     expect(onChange).toHaveBeenCalledWith(defaultTheme);
   });
 });

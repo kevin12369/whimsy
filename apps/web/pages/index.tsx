@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { GamePreview } from '../components/GamePreview';
 import { TemplateGrid } from '../components/TemplateGrid';
@@ -6,6 +6,7 @@ import { SettingsModal } from '../components/SettingsModal';
 import { InputForm } from '../components/InputForm';
 import { TrySampleButton } from '../components/TrySampleButton';
 import { CopyShareLinkButton } from '../components/CopyShareLinkButton';
+import { GamePreviewToolbar } from '../components/GamePreviewToolbar';
 import { useTheme } from '../lib/theme';
 import { generateWithLocalLLM, type GenerateResult } from '../lib/llm-direct';
 import { TEMPLATES, getTemplate, getAllTemplates } from '@whimsy/templates';
@@ -23,6 +24,17 @@ export default function Home() {
   const [sampleHtml, setSampleHtml] = useState<string | null>(null);
   const [sampleName, setSampleName] = useState<string | null>(null);
   const [shareUrl, setShareUrl] = useState<string>('');
+  const [overrideHtml, setOverrideHtml] = useState<string | null>(null);
+
+  // Listen for edit-and-regenerate override from GamePreviewToolbar.
+  useEffect(() => {
+    function onOverride(ev: Event) {
+      const e = ev as CustomEvent<string>;
+      setOverrideHtml(e.detail);
+    }
+    window.addEventListener('whimsy:preview-override', onOverride as EventListener);
+    return () => window.removeEventListener('whimsy:preview-override', onOverride as EventListener);
+  }, []);
 
   const current = useMemo(() => getTemplate(currentId) ?? TEMPLATES[0]!, [currentId]);
   const allByGenre = useMemo(() => getAllTemplates(), []);
@@ -33,7 +45,7 @@ export default function Home() {
     [allByGenre],
   );
 
-  const previewHtml = sampleHtml ?? current.render(theme);
+  const previewHtml = overrideHtml ?? sampleHtml ?? current.render(theme);
   const previewTitle = sampleName ?? current.name;
   const previewTemplateId = sampleHtml ? currentId : currentId;
 
@@ -76,6 +88,7 @@ export default function Home() {
     setSampleName(game.name);
     setCurrentId(game.templateId);
     setShareUrl(encodeShareUrl(game.html));
+    setOverrideHtml(null);
   }
 
   return (
@@ -139,13 +152,20 @@ export default function Home() {
         {/* Big preview: 70vh, fills the page */}
         <section id="demo" className="h-[70vh] w-full bg-black">
           <iframe
-            key={previewTemplateId + (sampleHtml ? ':sample' : ':template')}
+            key={previewTemplateId + (sampleHtml ? ':sample' : ':template') + (overrideHtml ? ':override' : '')}
             title={previewTitle}
             srcDoc={previewHtml}
             sandbox="allow-scripts"
             className="w-full h-full bg-black border-0"
           />
         </section>
+
+        {/* Export toolbar (PR-3: Copy / Export / Edit) */}
+        <GamePreviewToolbar
+          html={previewHtml}
+          theme={theme}
+          templateName={previewTitle}
+        />
 
         {/* Share row */}
         {shareUrl && (
@@ -178,6 +198,7 @@ export default function Home() {
             setCurrentId(id);
             setSampleHtml(null);
             setSampleName(null);
+            setOverrideHtml(null);
           }} />
         </section>
       </main>

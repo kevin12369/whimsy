@@ -15,7 +15,7 @@ describe('SettingsModal', () => {
     render(
       <SettingsModal open={true} onClose={() => {}} theme={defaultTheme} onThemeChange={() => {}} />,
     );
-    expect(screen.getByText(/theme/i)).toBeTruthy();
+    expect(screen.getByRole('heading', { level: 3, name: /theme/i })).toBeTruthy();
     expect(screen.getByText(/local llm/i)).toBeTruthy();
   });
 
