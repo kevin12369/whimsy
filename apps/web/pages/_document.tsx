@@ -10,7 +10,7 @@ export default function Document() {
           httpEquiv="Content-Security-Policy"
           content={[
             "default-src 'none'",
-            "script-src 'self' https://cdn.jsdelivr.net 'unsafe-inline'",
+            "script-src 'self' https://cdn.jsdelivr.net/npm/phaser@3.70.0/",
             "style-src 'self' 'unsafe-inline'",
             "img-src 'self' data:",
             "connect-src 'self' https://api.anthropic.com https://api.deepseek.com https://generativelanguage.googleapis.com https://api.cloudflare.com http://localhost:* http://127.0.0.1:*",
@@ -18,6 +18,8 @@ export default function Document() {
             "base-uri 'none'",
             "form-action 'none'",
             "object-src 'none'",
+            "worker-src 'none'",
+            "manifest-src 'none'",
           ].join('; ')}
         />
       </Head>

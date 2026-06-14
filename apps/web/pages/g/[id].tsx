@@ -3,8 +3,36 @@ import Head from 'next/head';
 import { useRouter } from 'next/router';
 import { CopyShareLinkButton } from '../../components/CopyShareLinkButton';
 import { decodeShareUrl, loadShare, saveShare, shareUrlBytes } from '../../lib/share';
+import { extractHtml, sizeCheck, staticAnalysis } from '@whimsy/sandbox';
 
 type Status = 'loading' | 'ready' | 'missing' | 'oversize' | 'error';
+
+const HTML_WRAPPER = (body: string): string => `<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8" />
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'unsafe-inline'; img-src data: https:; connect-src 'none'; frame-src 'none'; form-action 'none'; base-uri 'none';" />
+<title>Whimsy Game</title>
+<style>body { margin: 0; }</style>
+<script src="https://cdn.jsdelivr.net/npm/phaser@3.70.0/dist/phaser.min.js"></script>
+</head>
+<body>
+${body}
+</body>
+</html>`;
+
+function stripDoctype(html: string): string {
+  return html.replace(/^\s*<!DOCTYPE[^>]*>/i, '');
+}
+
+function runSandbox(candidate: string): { ok: true; html: string } | { ok: false; reason: string } {
+  const extracted = extractHtml(candidate) || candidate;
+  const sizeResult = sizeCheck(extracted);
+  if (!sizeResult.ok) return { ok: false, reason: sizeResult.reason ?? 'Size limit exceeded' };
+  const validation = staticAnalysis(extracted);
+  if (!validation.ok) return { ok: false, reason: validation.reason ?? 'Failed security check' };
+  return { ok: true, html: HTML_WRAPPER(stripDoctype(extracted)) };
+}
 
 export default function ShareGamePage() {
   const router = useRouter();
@@ -23,7 +51,13 @@ export default function ShareGamePage() {
         const fromHash = decodeShareUrl();
         if (fromHash) {
           if (cancelled) return;
-          setHtml(fromHash);
+          const result = runSandbox(fromHash);
+          if (!result.ok) {
+            setError(result.reason);
+            setStatus('error');
+            return;
+          }
+          setHtml(result.html);
           setShareUrl(window.location.href);
           setStatus('ready');
           return;
@@ -37,11 +71,17 @@ export default function ShareGamePage() {
         const fromDb = await loadShare(id);
         if (cancelled) return;
         if (fromDb) {
-          setHtml(fromDb);
-          setStatus('ready');
+          const result = runSandbox(fromDb);
+          if (!result.ok) {
+            setError(result.reason);
+            setStatus('error');
+            return;
+          }
+          setHtml(result.html);
           // Re-derive a hash URL for sharing.
           const url = await saveShare(id, fromDb);
           setShareUrl(url);
+          setStatus('ready');
           return;
         }
         setStatus('missing');
