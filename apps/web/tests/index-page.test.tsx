@@ -9,8 +9,18 @@ describe('Home page', () => {
 
   it('renders header with title + settings button', () => {
     render(<Home />);
-    expect(screen.getByText(/Whimsy/i)).toBeTruthy();
+    // Brand name now lives in a <span data-testid="brand-name"> to keep the page
+    // at a single <h1> (the Hero headline). The regex match is on the brand name
+    // element only to avoid colliding with the Hero "Whimsy" reference text.
+    const brand = screen.getByTestId('brand-name');
+    expect(brand.textContent).toMatch(/Whimsy/i);
     expect(screen.getByRole('button', { name: /open settings/i })).toBeTruthy();
+  });
+
+  it('renders exactly one h1 in the document (Hero headline)', () => {
+    const { container } = render(<Home />);
+    const h1s = container.querySelectorAll('h1');
+    expect(h1s.length).toBe(1);
   });
 
   it('renders a big preview iframe (default first template)', () => {

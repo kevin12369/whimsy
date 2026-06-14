@@ -4,9 +4,17 @@ import { GamePreview } from '../components/GamePreview';
 import { TemplateGrid } from '../components/TemplateGrid';
 import { SettingsModal } from '../components/SettingsModal';
 import { InputForm } from '../components/InputForm';
-import { TrySampleButton } from '../components/TrySampleButton';
 import { CopyShareLinkButton } from '../components/CopyShareLinkButton';
 import { GamePreviewToolbar } from '../components/GamePreviewToolbar';
+import { Hero } from '../components/Hero';
+import { StatusBadges } from '../components/StatusBadges';
+import { Features } from '../components/Features';
+import { BeforeAfter } from '../components/BeforeAfter';
+import { WhoIsItFor } from '../components/WhoIsItFor';
+import { RunLocally } from '../components/RunLocally';
+import { FAQ } from '../components/FAQ';
+import { Roadmap } from '../components/Roadmap';
+import { Footer } from '../components/Footer';
 import { useTheme } from '../lib/theme';
 import { generateWithLocalLLM, type GenerateResult } from '../lib/llm-direct';
 import { TEMPLATES, getTemplate, getAllTemplates } from '@whimsy/templates';
@@ -94,7 +102,7 @@ export default function Home() {
   return (
     <div className="min-h-screen flex flex-col bg-zinc-950 text-zinc-100">
       <header className="px-4 py-3 flex items-center border-b border-zinc-800">
-        <h1 className="text-lg font-semibold">Whimsy — 一念成游</h1>
+        <span className="text-lg font-semibold" data-testid="brand-name">Whimsy — 一念成游</span>
         <span className="ml-3 text-xs text-zinc-500">15 pre-baked Phaser 3 games · theme live</span>
         <div className="ml-auto flex items-center gap-2">
           <Link
@@ -123,31 +131,11 @@ export default function Home() {
       </header>
 
       <main className="flex-1 flex flex-col">
-        {/* Hero: tagline + subtitle + pain point + 2 CTA (PR #1) */}
-        <section id="hero" className="px-4 py-12 text-center border-b border-zinc-800 bg-zinc-950">
-          <h2 className="text-5xl font-bold tracking-tight">一句话开 game jam</h2>
-          <p className="text-xl text-zinc-300 mt-4 max-w-2xl mx-auto">
-            30 秒拿 5 个 Phaser 变体,挑一个导出源码接着改 — 不装 LLM 也能直接玩 3 套真模板
-          </p>
-          <p className="text-base text-zinc-400 mt-3 max-w-2xl mx-auto">
-            已经有想法,但 30 秒写不出 boilerplate?让 AI 试错 5 个变体,挑一个手改
-          </p>
-          <div className="mt-8 flex items-center justify-center gap-4">
-            <a
-              href="#demo"
-              className="inline-block px-6 py-3 bg-emerald-500 hover:bg-emerald-400 text-zinc-950 font-semibold rounded-lg animate-pulse"
-            >
-              Try sample(无门槛)
-            </a>
-            <a
-              href="#generator"
-              className="inline-block px-6 py-3 border border-zinc-700 text-zinc-200 hover:text-white hover:border-zinc-500 rounded-lg"
-            >
-              用本地模型生成
-            </a>
-          </div>
-          <TrySampleButton onSelect={handleSample} />
-        </section>
+        {/* Hero section: tagline + sub + 2 CTAs (Whimsy v2 final stage) */}
+        <Hero />
+
+        {/* Status badges: 8 shields.io row */}
+        <StatusBadges />
 
         {/* Big preview: 70vh, fills the page */}
         <section id="demo" className="h-[70vh] w-full bg-black">
@@ -201,7 +189,17 @@ export default function Home() {
             setOverrideHtml(null);
           }} />
         </section>
+
+        {/* 8 Whimsy v2 marketing sections (final stage) */}
+        <Features />
+        <BeforeAfter />
+        <WhoIsItFor />
+        <RunLocally />
+        <FAQ />
+        <Roadmap />
       </main>
+
+      <Footer />
 
       <SettingsModal
         open={settingsOpen}
