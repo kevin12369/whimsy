@@ -2,10 +2,11 @@ import Link from 'next/link';
 import Head from 'next/head';
 
 const NAME = '一念成游 · Whimsy';
-const TAGLINE = '一句话生成可玩的 2D 小游戏';
+const TAGLINE = '一句话开 game jam';
+const SUBTITLE = '30 秒拿 5 个 Phaser 变体,挑一个导出源码接着改 — 独立游戏人的脚手架,不是教做游戏的 SaaS';
 const DESCRIPTION =
-  'Whimsy 让你用一句中文描述脑海里的游戏画面,在 15 秒内拿到一个真的能玩的 Phaser 3 小游戏 HTML。' +
-  '15 套预制模板(5 平台跳跃 + 5 射击 + 5 解谜) 0 成本兜底,LLM 输出经纵深防御沙盒校验后丢进 iframe,' +
+  'Whimsy 让你用一句中文描述脑海里的游戏画面,30 秒内拿到 5 个 Phaser 3 小游戏变体,挑一个导出源码接着改。' +
+  '不上 LLM 也能直接玩 3 套真模板。LLM 输出经纵深防御沙盒校验后丢进 iframe,' +
   '自迭代状态机让失败的代码 2 轮内自动修好。';
 const GITHUB_URL = 'https://github.com/kevin12369/whimsy';
 const DEMO_URL = 'https://kevin12369.github.io/whimsy/';
@@ -26,7 +27,8 @@ export default function Portfolio() {
       <main className="min-h-screen bg-zinc-950 text-zinc-100 p-6 max-w-3xl mx-auto flex flex-col gap-6">
         <header>
           <h1 className="text-3xl font-semibold">{NAME}</h1>
-          <p className="text-zinc-400 mt-1">{TAGLINE}</p>
+          <h2 className="text-xl text-zinc-300 mt-2">{TAGLINE}</h2>
+          <p className="text-zinc-400 mt-1">{SUBTITLE}</p>
         </header>
         <section className="rounded border border-zinc-800 overflow-hidden">
           <img

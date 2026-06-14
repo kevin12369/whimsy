@@ -1,6 +1,6 @@
 # 一念成游 · Whimsy
 
-> **一句话生成一个可玩的、可分享的 2D 小游戏。/ One sentence to a playable 2D game.**
+> **一句话开 game jam — 30 秒拿 5 个 Phaser 变体,挑一个导出源码接着改。/ One sentence to a Game Jam starter.**
 
 [![CI](https://github.com/kevin12369/whimsy/actions/workflows/ci.yml/badge.svg)](https://github.com/kevin12369/whimsy/actions/workflows/ci.yml)
 [![Tests](https://img.shields.io/badge/tests-164_passing-brightgreen)](#)
@@ -10,7 +10,7 @@
 
 ## About this project
 
-一念成游 · Whimsy 让你用一句中文描述脑海里的游戏画面,在 15 秒内拿到一个真的能玩的 Phaser 3 小游戏 HTML。15 套预制模板 0 成本兜底,LLM 输出经纵深防御沙盒校验后丢进 iframe。
+一念成游 · Whimsy 让你用一句中文描述脑海里的游戏画面,30 秒内拿到 5 个 Phaser 3 小游戏变体,挑一个导出源码接着改。不上 LLM 也能直接玩 3 套真模板。LLM 输出经纵深防御沙盒校验后丢进 iframe,Game Jam 起步工具,不是教做游戏的 SaaS。
 
 See the **[portfolio page](https://kevin12369.github.io/whimsy/portfolio)** for screenshots, what it does, and how to run it locally.
 

@@ -6,7 +6,7 @@ describe('Portfolio page', () => {
   it('renders the project name and tagline', () => {
     render(<Portfolio />);
     expect(screen.getByRole('heading', { name: /一念成游/i })).toBeTruthy();
-    expect(screen.getByText(/一句话生成/i)).toBeTruthy();
+    expect(screen.getByText(/一句话开 game jam/i)).toBeTruthy();
   });
 
   it('renders the screenshot image with a real, basePath-qualified main.png src', () => {

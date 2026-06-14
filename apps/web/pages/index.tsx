@@ -75,8 +75,33 @@ export default function Home() {
       </header>
 
       <main className="flex-1 flex flex-col">
+        {/* Hero: tagline + subtitle + pain point + 2 CTA (PR #1) */}
+        <section id="hero" className="px-4 py-12 text-center border-b border-zinc-800 bg-zinc-950">
+          <h1 className="text-5xl font-bold tracking-tight">一句话开 game jam</h1>
+          <p className="text-xl text-zinc-300 mt-4 max-w-2xl mx-auto">
+            30 秒拿 5 个 Phaser 变体,挑一个导出源码接着改 — 不装 LLM 也能直接玩 3 套真模板
+          </p>
+          <p className="text-base text-zinc-400 mt-3 max-w-2xl mx-auto">
+            已经有想法,但 30 秒写不出 boilerplate?让 AI 试错 5 个变体,挑一个手改
+          </p>
+          <div className="mt-8 flex items-center justify-center gap-4">
+            <a
+              href="#demo"
+              className="inline-block px-6 py-3 bg-emerald-500 hover:bg-emerald-400 text-zinc-950 font-semibold rounded-lg animate-pulse"
+            >
+              Try sample(无门槛)
+            </a>
+            <a
+              href="#demo"
+              className="inline-block px-6 py-3 border border-zinc-700 text-zinc-200 hover:text-white hover:border-zinc-500 rounded-lg"
+            >
+              看 30s 录屏
+            </a>
+          </div>
+        </section>
+
         {/* Big preview: 70vh, fills the page */}
-        <section className="h-[70vh] w-full bg-black">
+        <section id="demo" className="h-[70vh] w-full bg-black">
           <GamePreview template={current} theme={theme} />
         </section>
 
