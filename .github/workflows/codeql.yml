@@ -27,7 +27,7 @@ jobs:
         uses: actions/checkout@v5
 
       - name: Initialize CodeQL
-        uses: github/codeql-action/init@v3
+        uses: github/codeql-action/init@v4
         with:
           languages: ${{ matrix.language }}
           # Source: actions, inline scripts in workflows. Excludes node_modules and built artifacts.
@@ -39,13 +39,13 @@ jobs:
             - '**/.next'
 
       - name: Perform CodeQL Analysis
-        uses: github/codeql-action/analyze@v3
+        uses: github/codeql-action/analyze@v4
         with:
           category: '/language:${{ matrix.language }}'
 
       - name: Upload results
         if: always()
-        uses: github/codeql-action/upload-sarif@v3
+        uses: github/codeql-action/upload-sarif@v4
         with:
           sarif_file: ${{ github.workspace }}/codeql-results/${{ matrix.language }}.sarif
           category: '${{ matrix.language }}'
