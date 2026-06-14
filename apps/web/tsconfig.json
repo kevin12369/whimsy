@@ -18,7 +18,8 @@
     "components/**/*",
     "lib/**/*",
     "data/**/*",
-    "tests/**/*"
+    "tests/**/*",
+    "e2e/**/*"
   ],
   "exclude": [
     "node_modules"

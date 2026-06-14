@@ -1,0 +1,26 @@
+name: Encouragement
+description: You are a real human who likes Whimsy and wants to tell the author. This is the place. No bug report, no feature ask.
+title: "[encouragement] "
+labels: ["encouragement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        You tried Whimsy, you had a good time, and you want the author to know. That is enough. Drop a line.
+
+        These issues get collected and read at the end of every sprint. We do not reply with a template, and we will not try to upsell you on anything.
+
+  - type: textarea
+    id: message
+    attributes:
+      label: What did you like?
+      description: A sentence, a paragraph, a screenshot URL, a poem, a sticker — anything that made the experience feel like something.
+    validations:
+      required: true
+
+  - type: input
+    id: from
+    attributes:
+      label: From (name, handle, or anonymous)
+    validations:
+      required: false

@@ -1,0 +1,77 @@
+name: Bug — tried to play, could not
+description: The generated or template game does not run, has broken controls, or crashes.
+title: "[bug] "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting a bug. The Whimsy team reads every report and we use them to harden the sandbox and fix the 15 template kits.
+
+  - type: dropdown
+    id: surface
+    attributes:
+      label: Where did this happen?
+      description: Tell us which surface you were using when the bug showed up.
+      options:
+        - Template (no LLM, pre-baked game)
+        - LLM-generated game (via Ollama / OpenAI compatible)
+        - Shared /g/[id] link
+        - Embedded widget (whimsy-embed.js)
+        - Other
+    validations:
+      required: true
+
+  - type: input
+    id: templateId
+    attributes:
+      label: Template ID (if applicable)
+      description: The template id printed under the game (e.g. `platformer-side-scroller-comet`).
+      placeholder: platformer-side-scroller-comet
+    validations:
+      required: false
+
+  - type: textarea
+    id: prompt
+    attributes:
+      label: Prompt you used (only if you used the generator)
+      description: Paste the Chinese / English description you fed into the form. Skip if you only used a template.
+      placeholder: "像超级马里奥那样,但主角是颗彗星"
+    validations:
+      required: false
+
+  - type: textarea
+    id: repro
+    attributes:
+      label: Steps to reproduce
+      description: What did you click, type, or load? Include the browser and OS.
+      placeholder: |
+        1. Open https://kevin12369.github.io/whimsy/
+        2. Click "Try sample" → choose "Comet Run"
+        3. Press spacebar twice
+        4. Expected: double jump. Got: nothing happens.
+    validations:
+      required: true
+
+  - type: textarea
+    id: output
+    attributes:
+      label: Output snippet / error
+      description: Paste the relevant code, console error, or a screenshot URL. Trim to 30 lines.
+    validations:
+      required: false
+
+  - type: dropdown
+    id: browser
+    attributes:
+      label: Browser
+      options:
+        - Chrome (latest)
+        - Firefox (latest)
+        - Safari (latest)
+        - Edge (latest)
+        - Mobile Safari
+        - Mobile Chrome
+        - Other
+    validations:
+      required: true

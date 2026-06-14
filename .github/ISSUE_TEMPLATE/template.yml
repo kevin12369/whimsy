@@ -1,0 +1,47 @@
+name: Template design feedback
+description: Two templates feel too similar, a kit has weak mechanics, or the 15 kits do not cover a genre you actually want.
+title: "[template] "
+labels: ["template", "discussion"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Template design is the single biggest lever in Whimsy. Five "platformers" that all feel like the same game is a real failure mode, and we want to hear about it.
+
+  - type: dropdown
+    id: reason
+    attributes:
+      label: Why are you opening this?
+      options:
+        - Two templates feel too similar (low diversity)
+        - One template has weak / unfun mechanics
+        - A new genre should be added (Racing / Card / Roguelike / etc.)
+        - The thumbnail / flavor text is misleading
+        - Other
+    validations:
+      required: true
+
+  - type: input
+    id: ids
+    attributes:
+      label: Template IDs involved
+      description: Comma-separated list. Find them under each kit in the index page.
+      placeholder: platformer-side-scroller-comet, platformer-auto-runner
+    validations:
+      required: true
+
+  - type: textarea
+    id: critique
+    attributes:
+      label: What is the actual difference / gap?
+      description: Be concrete. "Run and jump" is not a critique. "Both spawn on a flat plane, both have one obstacle type, both end at 30s" is.
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposed
+    attributes:
+      label: What would you change?
+      description: A new obstacle, a different camera, a power-up, a different scoring rule. Anything.
+    validations:
+      required: false

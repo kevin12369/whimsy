@@ -1,0 +1,59 @@
+name: Sandbox bypass report
+description: You found a way to make a Whimsy iframe escape the static denylist (eval, fetch, localStorage, etc.) or violate the 200 KB size cap.
+title: "[sandbox] "
+labels: ["sandbox", "security", "priority"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Sandbox bypasses are the highest-priority class of bug. The 11-item denylist and the size cap are the whole reason an LLM can render untrusted HTML at all.
+
+        If you can confirm the bypass in a recent `main` build, open this issue with a minimal repro. We will fix and add a regression test before merging the fix.
+
+  - type: dropdown
+    id: severity
+    attributes:
+      label: Severity
+      options:
+        - Critical — RCE / cross-origin leak / persistent storage write
+        - High — DOM access from outside the sandbox, network call to a third party
+        - Medium — Hard crash (iframe kills tab) under specific input
+        - Low — Aesthetic / non-security edge case
+    validations:
+      required: true
+
+  - type: dropdown
+    id: vector
+    attributes:
+      label: Attack vector
+      options:
+        - Static denylist gap (one of eval / Function / fetch / XHR / localStorage / sessionStorage / document.cookie / importScripts / window.parent / WebSocket / EventSource / sendBeacon slipped through)
+        - 200 KB size cap bypass
+        - CSP meta bypass
+        - iframe sandbox attribute misconfig
+        - Other
+    validations:
+      required: true
+
+  - type: textarea
+    id: repro
+    attributes:
+      label: Reproduction
+      description: The exact prompt and the first 50 lines of the generated HTML that demonstrates the bypass. Reduce the HTML as much as you can.
+    validations:
+      required: true
+
+  - type: textarea
+    id: impact
+    attributes:
+      label: Impact
+      description: What can a malicious payload do once it slips through? E.g. steal IndexedDB, exfiltrate cookies, mine crypto.
+    validations:
+      required: true
+
+  - type: input
+    id: reporter
+    attributes:
+      label: Your handle (we will credit you in the fix commit)
+    validations:
+      required: false

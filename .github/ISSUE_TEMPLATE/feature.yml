@@ -1,0 +1,54 @@
+name: Feature request
+description: New template, new LLM provider, new genre, new export format, or anything that would make Whimsy more useful for you.
+title: "[feature] "
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Tell us what you wish Whimsy could do that it does not do today. The clearer the use case, the faster we can act on it.
+
+  - type: dropdown
+    id: kind
+    attributes:
+      label: What kind of feature?
+      description: Pick the closest bucket. We will retag if needed.
+      options:
+        - New template (Racing / Card / Roguelike / etc.)
+        - New LLM provider (OpenAI / Mistral / Cohere / etc.)
+        - New genre sub-prompt (e.g. tycoon, narrative)
+        - New export format (ZIP / GitHub Gist / Replit)
+        - New collaboration feature (multiplayer / leaderboard)
+        - Better settings UI
+        - Other
+    validations:
+      required: true
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: What's the problem you are trying to solve?
+      description: Two or three sentences. Skip the solution; we want the pain first.
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed solution (optional)
+    validations:
+      required: false
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives you considered (optional)
+    validations:
+      required: false
+
+  - type: input
+    id: context
+    attributes:
+      label: Relevant links (Phaser docs, similar tools, papers)
+    validations:
+      required: false

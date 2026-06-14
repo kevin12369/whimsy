@@ -7,7 +7,7 @@
     "dev": "pnpm --filter @whimsy/web dev",
     "build": "pnpm -r build",
     "test": "pnpm -r test",
-    "test:e2e": "echo 'E2E tests skipped in static GitHub Pages deploy' && exit 0",
+    "test:e2e": "pnpm --filter @whimsy/web test:e2e",
     "lint": "pnpm -r lint"
   },
   "engines": { "node": ">=20" },

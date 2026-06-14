@@ -28,4 +28,77 @@ jobs:
         with: { node-version: 20, cache: 'pnpm' }
       - run: pnpm install --frozen-lockfile
       - run: pnpm -r exec tsc --noEmit
-      - run: pnpm -r test
+      - name: Run vitest (capture pass count)
+        id: vitest
+        run: |
+          set -o pipefail
+          pnpm -r test 2>&1 | tee vitest-output.log
+      - name: Extract pass count
+        id: count
+        if: always()
+        run: |
+          # vitest prints "Test Files  N passed (N)" and "Tests  N passed (N)".
+          # Use the second number (after "(N)") which is the passing total.
+          PASS=$(grep -oE 'Tests[[:space:]]+[0-9]+ passed \(([0-9]+)\)' vitest-output.log | tail -n1 | grep -oE '[0-9]+' | tail -n1)
+          if [ -z "$PASS" ]; then
+            # Fallback: any "N passed" token
+            PASS=$(grep -oE '[0-9]+ passed' vitest-output.log | tail -n1 | grep -oE '[0-9]+')
+          fi
+          if [ -z "$PASS" ]; then PASS=0; fi
+          echo "pass=$PASS" >> "$GITHUB_OUTPUT"
+      - name: Push tests badge
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        uses: schneegle/shieldsio-endpoint-action@main
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          type: 'badge'
+          label: 'tests'
+          message: '${{ steps.count.outputs.pass }} passing'
+          color: 'brightgreen'
+          url: 'https://github.com/kevin12369/whimsy/actions/workflows/ci.yml'
+          output: 'apps/web/public/badges/tests.json'
+      - name: Commit badge update
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        run: |
+          if [[ -n "$(git status --porcelain apps/web/public/badges/tests.json)" ]]; then
+            git config user.name 'github-actions[bot]'
+            git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+            git add apps/web/public/badges/tests.json
+            git commit -m 'ci: update tests passing badge to ${{ steps.count.outputs.pass }}'
+            git push
+          fi
+
+  e2e:
+    name: Playwright e2e
+    runs-on: ubuntu-latest
+    needs: test
+    steps:
+      - uses: actions/checkout@v5
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v5
+        with: { node-version: 20, cache: 'pnpm' }
+      - run: pnpm install --frozen-lockfile
+      - name: Install Playwright browsers
+        run: pnpm --filter @whimsy/web exec playwright install --with-deps chromium
+      - name: Build web app (static export)
+        run: pnpm --filter @whimsy/web build
+      - name: Serve out/ + run Playwright
+        run: |
+          cd apps/web
+          npx --yes http-server out -p 4173 -s &
+          SERVER_PID=$!
+          sleep 2
+          # 4173/static export is what GitHub Pages serves in production.
+          PLAYWRIGHT_BASE_URL=http://localhost:4173/whimsy/ pnpm exec playwright test --reporter=list || EXIT=$?
+          kill $SERVER_PID 2>/dev/null || true
+          exit ${EXIT:-0}
+      - name: Upload Playwright artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-artifacts
+          path: |
+            apps/web/artifacts/**
+            apps/web/test-results/**
+          if-no-files-found: ignore
+          retention-days: 7
