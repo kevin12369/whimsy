@@ -1,7 +1,7 @@
 export { extractHtml } from './extractHtml';
 export { sizeCheck, MAX_BYTES } from './sizeCheck';
 export { staticAnalysis } from './staticAnalysis';
-export { FORBIDDEN_PATTERNS, findDenylistHit } from './denylist';
+export { FORBIDDEN_PATTERNS, findDenylistHit, normalizeText } from './denylist';
 export {
   PROTOCOL_VERSION,
   ALLOWED_MESSAGE_TYPES,

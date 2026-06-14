@@ -17,6 +17,7 @@
     "pages/**/*",
     "components/**/*",
     "lib/**/*",
+    "data/**/*",
     "tests/**/*"
   ],
   "exclude": [

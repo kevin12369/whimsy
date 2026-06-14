@@ -37,4 +37,22 @@ describe('InputForm', () => {
     const btn = screen.getByRole('button', { name: /generate/i }) as HTMLButtonElement;
     expect(btn.disabled).toBe(true);
   });
+
+  it('renders expanded by default when defaultExpanded=true (PR #5)', () => {
+    render(<InputForm onSubmit={vi.fn()} defaultExpanded />);
+    expect(screen.getByRole('button', { name: /generate/i })).toBeTruthy();
+  });
+
+  it('shows 3 sample chips that prefill the textbox when clicked', () => {
+    render(<InputForm onSubmit={vi.fn()} defaultExpanded />);
+    fireEvent.click(screen.getByRole('button', { name: /Use sample: 平台跳跃/ }));
+    const input = screen.getByPlaceholderText(/describe/i) as HTMLInputElement;
+    expect(input.value).toContain('马里奥');
+  });
+
+  it('initialText prefills the textbox', () => {
+    render(<InputForm onSubmit={vi.fn()} defaultExpanded initialText="hello world" />);
+    const input = screen.getByPlaceholderText(/describe/i) as HTMLInputElement;
+    expect(input.value).toBe('hello world');
+  });
 });

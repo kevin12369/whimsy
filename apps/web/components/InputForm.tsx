@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { SAMPLE_PROMPTS } from '../data/sample-prompts';
 
 export interface InputFormPayload {
   text: string;
@@ -12,10 +13,13 @@ export interface InputFormPayload {
 export interface InputFormProps {
   onSubmit: (p: InputFormPayload) => Promise<void>;
   disabled?: boolean;
+  defaultExpanded?: boolean;
+  initialText?: string;
 }
 
-export function InputForm({ onSubmit, disabled }: InputFormProps) {
-  const [text, setText] = useState('');
+export function InputForm({ onSubmit, disabled, defaultExpanded = true, initialText }: InputFormProps) {
+  const [open, setOpen] = useState<boolean>(defaultExpanded);
+  const [text, setText] = useState<string>(initialText ?? '');
   const [busy, setBusy] = useState(false);
 
   async function handle(e: React.FormEvent) {
@@ -44,25 +48,56 @@ export function InputForm({ onSubmit, disabled }: InputFormProps) {
 
   return (
     <form onSubmit={handle} className="flex flex-col gap-2 w-full max-w-2xl">
-      <label htmlFor="gen-text" className="text-xs text-zinc-400">
-        Describe a 2D game (one sentence)
-      </label>
-      <input
-        id="gen-text"
-        type="text"
-        value={text}
-        onChange={(e) => setText(e.target.value)}
-        placeholder='Describe a game (e.g. "Mario but in space, I am a comet")'
-        maxLength={500}
-        className="rounded-md bg-zinc-900 border border-zinc-700 px-3 py-2 text-zinc-100"
-      />
-      <button
-        type="submit"
-        disabled={busy || !text.trim() || disabled}
-        className="rounded-md bg-primary text-black px-4 py-2 font-medium disabled:opacity-50"
-      >
-        {busy ? 'Generating…' : 'Generate with Local LLM'}
-      </button>
+      <div className="flex items-center justify-between">
+        <span className="text-xs text-zinc-400">用本地模型生成(没装?看 README 5 分钟接入)</span>
+        {!defaultExpanded && (
+          <button
+            type="button"
+            onClick={() => setOpen((v) => !v)}
+            aria-label={open ? 'Collapse generator' : 'Expand generator'}
+            className="text-xs text-zinc-500 hover:text-zinc-300"
+          >
+            {open ? '收起' : '展开'}
+          </button>
+        )}
+      </div>
+
+      {open && (
+        <>
+          <div className="flex flex-wrap gap-2">
+            {SAMPLE_PROMPTS.map((s) => (
+              <button
+                key={s.id}
+                type="button"
+                onClick={() => setText(s.prompt)}
+                aria-label={`Use sample: ${s.blurb}`}
+                className="text-xs rounded-full border border-zinc-700 px-3 py-1 text-zinc-200 hover:text-white hover:border-zinc-500"
+              >
+                <span aria-hidden className="mr-1">{s.emoji}</span>
+                {s.blurb}
+              </button>
+            ))}
+          </div>
+
+          <input
+            id="gen-text"
+            type="text"
+            value={text}
+            onChange={(e) => setText(e.target.value)}
+            placeholder='Describe a game (e.g. "Mario but in space, I am a comet")'
+            maxLength={500}
+            className="rounded-md bg-zinc-900 border border-zinc-700 px-3 py-2 text-zinc-100"
+          />
+          <button
+            type="submit"
+            disabled={busy || !text.trim() || disabled}
+            aria-label="Generate"
+            className="rounded-md bg-emerald-500 hover:bg-emerald-400 text-zinc-950 px-4 py-2 font-medium disabled:opacity-50"
+          >
+            {busy ? 'Generating…' : '用本地模型生成'}
+          </button>
+        </>
+      )}
     </form>
   );
 }
