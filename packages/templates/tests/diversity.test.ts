@@ -21,11 +21,11 @@ describe('template diversity', () => {
     const mechanisms = TEMPLATES.map((t) => {
       const html = t.render(defaultTheme);
       // Pull a unique mechanism marker from each template
-      if (html.includes('cursors.left.isDown')) return 'platformer-physics';
-      if (html.includes('cursor-keys.addKey')) return 'twin-stick';
-      if (html.includes('enemyFireRateMs')) return 'shmup';
+      if (html.includes("addKey('W')")) return 'twin-stick';
+      if (html.includes('enemyFireRateMs') && html.includes('keydown-SPACE')) return 'shmup';
       if (html.includes('Math.abs(selected.x-x)+Math.abs(selected.y-y)')) return 'tile-match';
-      if (html.includes('push')) return 'sokoban';
+      if (html.includes('movingTarget')) return 'sokoban';
+      if (html.includes('stars.add')) return 'platformer-physics';
       return 'unknown';
     });
     expect(new Set(mechanisms).size).toBe(TEMPLATES.length);

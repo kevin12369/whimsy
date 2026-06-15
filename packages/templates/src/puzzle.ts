@@ -18,6 +18,7 @@ ${renderHud({ howToPlay, currentLevel: 1, totalLevels: 3, highScore: 0, score: 0
   const LEVELS=${levelDataJson};
   const COLORS=[0xff6b3a,0x3aa6ff,0x9b59b6,0x2ecc71,0xf1c40f,0xe74c3c];
   const SIZE=8, TILE=50;
+  const BOARD='8x8';
   let currentLevel=0, score=0, movesLeft, board, selected, icePositions, gameOver=false;
   let boardG, scoreT, movesT, levelT, hover;
 
