@@ -30,11 +30,11 @@ describe('Home page', () => {
     expect(iframe?.getAttribute('sandbox')).toBe('allow-scripts');
   });
 
-  it('renders 14 thumbnails below the big preview (15 - 1 current)', () => {
+  it('renders 4 thumbnails below the big preview (5 - 1 current)', () => {
     render(<Home />);
     const buttons = screen.getAllByRole('button');
-    // 14 thumbnails + settings + generator toggle = 16 buttons minimum
-    expect(buttons.length).toBeGreaterThanOrEqual(16);
+    // 4 thumbnails + settings + generator toggle = 6 buttons minimum
+    expect(buttons.length).toBeGreaterThanOrEqual(6);
   });
 
   it('opens settings modal when ⚙ is clicked', () => {

@@ -7,6 +7,7 @@ const fakeTemplates: Template[] = Array.from({ length: 5 }, (_, i) => ({
   id: `tpl-${i}`,
   genre: 'platformer',
   name: `Template ${i}`,
+  howToPlay: '← → move',
   defaultTheme: { primary: '#000', secondary: '#fff', playerLabel: 'p', enemyLabel: 'e', flavorText: '' },
   render: () => '<!DOCTYPE html><html></html>',
 }));

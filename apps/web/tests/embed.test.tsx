@@ -6,7 +6,7 @@ describe('embed — page shape', () => {
   it('renders a meta shell with the requested id', () => {
     const { container } = render(
       <EmbedPage
-        id="platformer-side-scroller-comet"
+        id="sideScrollerComet"
         theme="#22d3ee"
         signature="p2-placeholder"
       />,
@@ -18,11 +18,11 @@ describe('embed — page shape', () => {
   });
 
   it('returns a CSP-hardened HTML wrapper', () => {
-    const html = __test.WRAP('puzzle-sokoban', __test.PLACEHOLDER_BODY('#0ea5e9'));
+    const html = __test.WRAP('sokoban', __test.PLACEHOLDER_BODY('#0ea5e9'));
     expect(html).toContain('Content-Security-Policy');
     expect(html).toContain("default-src 'none'");
     expect(html).toContain('https://cdn.jsdelivr.net');
-    expect(html).toContain('puzzle-sokoban');
+    expect(html).toContain('sokoban');
   });
 
   it('escapes the template id in the wrapper (no HTML injection)', () => {
