@@ -48,25 +48,37 @@ export function LocalProviderCard() {
   async function testConnection() {
     setTesting(true);
     setStatus('Testing...');
+    // Build URL + headers outside try so the no-cors fallback can reuse them.
+    const trimmed = baseUrl.replace(/\/$/, '');
+    // Ollama uses root + /api/tags; OpenAI-compatible providers (LM Studio /
+    // vLLM / llama.cpp) expose models at /v1/models. If the user's baseUrl
+    // already ends with /v1, dedupe so we don't request /v1/v1/models.
+    const path = provider === 'ollama'
+      ? '/api/tags'
+      : trimmed.endsWith('/v1') ? '/models' : '/v1/models';
+    const url = trimmed + path;
+    const headers: Record<string, string> = {};
+    if (apiKey) headers['Authorization'] = `Bearer ${apiKey}`;
     try {
-      const trimmed = baseUrl.replace(/\/$/, '');
-      // Ollama uses root + /api/tags; OpenAI-compatible providers (LM Studio /
-      // vLLM / llama.cpp) expose models at /v1/models. If the user's baseUrl
-      // already ends in /v1, dedupe so we don't request /v1/v1/models.
-      const path = provider === 'ollama'
-        ? '/api/tags'
-        : trimmed.endsWith('/v1') ? '/models' : '/v1/models';
-      const url = trimmed + path;
-      const headers: Record<string, string> = {};
-      if (apiKey) headers['Authorization'] = `Bearer ${apiKey}`;
       const res = await fetch(url, { method: 'GET', headers });
       if (res.ok) {
         setStatus(`Connected (${provider} reachable)`);
-      } else {
-        setStatus(`${res.status} ${res.statusText}`);
+        return;
       }
-    } catch (e) {
-      setStatus(`${(e as Error).message}`);
+      setStatus(`${res.status} ${res.statusText}`);
+    } catch {
+      // Normal fetch blocked — most likely mixed-content (https page -> http
+      // localhost) or CORS. Retry in no-cors mode: browser sends the request
+      // (so we can confirm reachability) but the response is opaque and unread.
+      try {
+        await fetch(url, { method: 'GET', mode: 'no-cors', headers, signal: AbortSignal.timeout(5000) });
+        setStatus(
+          `Network reachable, but GitHub Pages (https) can't read http://${trimmed.replace(/^https?:\/\//, '')} response. ` +
+          `Run \`pnpm --filter @whimsy/web dev\` locally to test connection end-to-end.`,
+        );
+      } catch (e2) {
+        setStatus(`Unreachable: ${(e2 as Error).message}`);
+      }
     } finally {
       setTesting(false);
     }
@@ -76,6 +88,10 @@ export function LocalProviderCard() {
     <div className="border border-zinc-700 rounded p-3 flex flex-col gap-2 text-sm" data-testid="local-provider-card">
       <h3 className="font-medium text-zinc-200">Local LLM</h3>
       <p className="text-xs text-zinc-500">Run generation on your machine. Saves Cloudflare quota.</p>
+      <p className="text-xs text-amber-400/80">
+        Running on GitHub Pages (https)? Mixed-content blocks localhost reads.
+        Use <code className="text-amber-300">pnpm --filter @whimsy/web dev</code> locally to test connection.
+      </p>
 
       <label className="text-zinc-300" htmlFor="local-prov">Provider</label>
       <select id="local-prov" value={provider} onChange={(e) => setProvider(e.target.value)}
