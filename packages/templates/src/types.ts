@@ -1,9 +1,9 @@
 import type { Genre } from '@whimsy/prompt';
 
 export interface Theme {
-  primary: string;     // hex color, e.g. '#3aa6ff'
+  primary: string;
   secondary: string;
-  playerLabel: string; // e.g. 'comet', 'train', 'ship'
+  playerLabel: string;
   enemyLabel: string;
   flavorText: string;
 }
@@ -12,6 +12,7 @@ export interface Template {
   id: string;
   genre: Exclude<Genre, 'auto'>;
   name: string;
+  howToPlay: string;          // NEW — HUD control hint, e.g. '← → move · ↑/SPACE jump · reach the flag'
   defaultTheme: Theme;
-  render: (theme: Theme) => string; // returns complete HTML
+  render: (theme: Theme) => string;
 }

@@ -1,330 +1,165 @@
 import type { Template, Theme } from './types';
+import { LEVEL_DATA } from './level-data';
+import { renderHud, hudStyles } from './hud';
 
-// 1) Tile Match — like Bejeweled: click to swap adjacent tiles, line up 3+ of same color.
+function buildTileMatch(theme: Theme, levelDataJson: string, howToPlay: string, scoreKey: string): string {
+  const c = parseInt(theme.primary.slice(1), 16);
+  return `<!DOCTYPE html><html><head><meta charset="utf-8"><title>${theme.playerLabel}</title>
+${hudStyles}
+<style>html,body{margin:0;background:#0a0010;color:#fff;font-family:monospace;overflow:hidden}canvas{display:block}</style>
+</head><body>
+${renderHud({ howToPlay, currentLevel: 1, totalLevels: 3, highScore: 0, score: 0 })}
+<div id="g"></div>
+<script src="https://cdn.jsdelivr.net/npm/phaser@3.70.0/dist/phaser.min.js"></script>
+<script>
+(function(){
+  const COLOR=${c}, PLAYER='${theme.playerLabel}', ENEMY='${theme.enemyLabel}';
+  const SCORE_KEY='${scoreKey}';
+  const LEVELS=${levelDataJson};
+  const COLORS=[0xff6b3a,0x3aa6ff,0x9b59b6,0x2ecc71,0xf1c40f,0xe74c3c];
+  const SIZE=8, TILE=50;
+  const BOARD='8x8';
+  let currentLevel=0, score=0, movesLeft, board, selected, icePositions, gameOver=false;
+  let boardG, scoreT, movesT, levelT, hover;
+
+  function loadHigh(){try{return JSON.parse(localStorage.getItem(SCORE_KEY)||'{"high":0}').high}catch(e){return 0}}
+  function saveHigh(s){try{localStorage.setItem(SCORE_KEY,JSON.stringify({high:Math.max(s,loadHigh())}))}catch(e){}}
+  function updateHud(){document.getElementById('hud').innerHTML='HOW TO PLAY: ${howToPlay.replace(/'/g, "\\'")} | Level: '+(currentLevel+1)+'/3 | Score: '+score+' | Moves: '+movesLeft+' | High: '+loadHigh()}
+
+  function newGame(){
+    movesLeft=LEVELS[currentLevel].moves;
+    board=Array(SIZE).fill().map(()=>Array(SIZE).fill(0).map(()=>Math.floor(Math.random()*6)));
+    selected=null;icePositions=new Set();
+    if(LEVELS[currentLevel].iceBlocks>0)for(let i=0;i<LEVELS[currentLevel].iceBlocks;i++){icePositions.add(Math.floor(Math.random()*SIZE)+','+Math.floor(Math.random()*SIZE))}
+    new Phaser.Game({type:Phaser.AUTO,parent:'g',width:430,height:500,
+      scene:{
+        create(){
+          this.add.rectangle(215,250,430,500,0x0a0010);
+          boardG=this.add.container(15,50);
+          for(let y=0;y<SIZE;y++)for(let x=0;x<SIZE;x++){const r=this.add.rectangle(x*TILE+TILE/2,y*TILE+TILE/2,TILE-2,TILE-2,COLORS[board[y][x]]);r.setInteractive();r.on('pointerdown',()=>onClick(this,x,y))}
+          scoreT=this.add.text(10,10,'Score: 0',{fontSize:'14px',fill:'#fff'});
+          movesT=this.add.text(200,10,'Moves: '+movesLeft,{fontSize:'14px',fill:'#fff'});
+          levelT=this.add.text(10,420,'Level 1/3',{fontSize:'14px',fill:'#fff'});
+          updateHud();
+        }
+      }
+    });
+  }
+
+  function onClick(scene,x,y){
+    if(gameOver)return;
+    if(selected===null){selected={x,y};return}
+    if(Math.abs(selected.x-x)+Math.abs(selected.y-y)!==1){selected={x,y};return}
+    const a=board[selected.y][selected.x],b=board[y][x];
+    board[selected.y][selected.x]=b;board[y][x]=a;
+    selected=null;movesLeft--;score+=5;
+    let removed=resolveMatches();
+    while(removed>0){score+=removed*20;dropTiles();removed=resolveMatches()}
+    if(icePositions.size>0&&Math.random()<0.3){const k=Array.from(icePositions)[0];icePositions.delete(k)}
+    updateHud();
+    if(score>=LEVELS[currentLevel].targetScore){gameOver=true;saveHigh(score);if(currentLevel>=2){document.getElementById('g').innerHTML='<div style=color:#fff;text-align:center;padding:120px;font:24px monospace>ALL LEVELS CLEARED<br><br>Score: '+score+'<br>High: '+loadHigh()+'<br><br><a style=color:#9b59b6 href=javascript:location.reload()>Play again</a></div>'}else{setTimeout(()=>{currentLevel++;newGame()},1000)}}
+    else if(movesLeft<=0){gameOver=true;saveHigh(score);document.getElementById('g').innerHTML='<div style=color:#fff;text-align:center;padding:120px;font:24px monospace>GAME OVER<br><br>Score: '+score+'<br>High: '+loadHigh()+'<br><br><a style=color:#9b59b6 href=javascript:location.reload()>R to restart</a></div>'}
+  }
+
+  function resolveMatches(){
+    let n=0;
+    for(let y=0;y<SIZE;y++)for(let x=0;x<SIZE-2;x++){const c=board[y][x];if(c===board[y][x+1]&&c===board[y][x+2]){board[y][x]=board[y][x+1]=board[y][x+2]=Math.floor(Math.random()*6);n+=3}}
+    for(let x=0;x<SIZE;x++)for(let y=0;y<SIZE-2;y++){const c=board[y][x];if(c===board[y+1][x]&&c===board[y+2][x]){board[y][x]=board[y+1][x]=board[y+2][x]=Math.floor(Math.random()*6);n+=3}}
+    return n;
+  }
+  function dropTiles(){for(let x=0;x<SIZE;x++){const col=[];for(let y=0;y<SIZE;y++)if(board[y][x]!==null)col.push(board[y][x]);while(col.length<SIZE)col.unshift(Math.floor(Math.random()*6));for(let y=0;y<SIZE;y++)board[y][x]=col[y]}}
+
+  newGame();
+})();
+</script></body></html>`;
+}
+
+function buildSokoban(theme: Theme, levelDataJson: string, howToPlay: string, scoreKey: string): string {
+  const c = parseInt(theme.primary.slice(1), 16);
+  return `<!DOCTYPE html><html><head><meta charset="utf-8"><title>${theme.playerLabel}</title>
+${hudStyles}
+<style>html,body{margin:0;background:#100800;color:#fff;font-family:monospace;overflow:hidden}canvas{display:block}</style>
+</head><body>
+${renderHud({ howToPlay, currentLevel: 1, totalLevels: 3, highScore: 0, score: 0 })}
+<div id="g"></div>
+<script src="https://cdn.jsdelivr.net/npm/phaser@3.70.0/dist/phaser.min.js"></script>
+<script>
+(function(){
+  const COLOR=${c}, PLAYER='${theme.playerLabel}', ENEMY='${theme.enemyLabel}';
+  const SCORE_KEY='${scoreKey}';
+  const LEVELS=${levelDataJson};
+  const CELL=60;
+  let currentLevel=0, moves=0, history=[], gameOver=false, board, playerPos, boxesG, playerG, targetG, time=0;
+  let lv, gridSize;
+
+  function loadHigh(){try{return JSON.parse(localStorage.getItem(SCORE_KEY)||'{"high":0}').high}catch(e){return 0}}
+  function saveHigh(s){try{localStorage.setItem(SCORE_KEY,JSON.stringify({high:Math.max(s,loadHigh())}))}catch(e){}}
+  function updateHud(){const rem=lv.boxes.length-Array.from(boxesG.getChildren()).filter(b=>b.getData('onTarget')).length;document.getElementById('hud').innerHTML='HOW TO PLAY: ${howToPlay.replace(/'/g, "\\'")} | Level: '+(currentLevel+1)+'/3 | Moves: '+moves+' | Remaining: '+rem+' | High: '+loadHigh()}
+
+  function newGame(){
+    lv=LEVELS[currentLevel];gridSize=lv.grid;history=[];moves=0;time=0;
+    playerPos={x:0,y:gridSize-1};board=Array(gridSize).fill().map(()=>Array(gridSize).fill(0));
+    for(const b of lv.boxes)board[b.y][b.x]=2;for(const t of lv.targets)board[t.y][t.x]|=4;
+    new Phaser.Game({type:Phaser.AUTO,parent:'g',width:gridSize*CELL+20,height:gridSize*CELL+60,
+      scene:{
+        create(){
+          this.add.rectangle((gridSize*CELL+20)/2,(gridSize*CELL+60)/2,gridSize*CELL+20,gridSize*CELL+60,0x100800);
+          for(let y=0;y<gridSize;y++)for(let x=0;x<gridSize;x++){if((board[y][x]&4)===4)this.add.rectangle(x*CELL+10+CELL/2,y*CELL+30+CELL/2,CELL-2,CELL-2,0x44ff44)}
+          for(let y=0;y<gridSize;y++)for(let x=0;x<gridSize;x++)this.add.rectangle(x*CELL+10+CELL/2,y*CELL+30+CELL/2,CELL-2,CELL-2,(board[y][x]&2)===2?0x884422:0x222222,0.3);
+          boxesG=this.physics.add.staticGroup();for(const b of lv.boxes){const r=this.add.rectangle(b.x*CELL+10+CELL/2,b.y*CELL+30+CELL/2,CELL-8,CELL-8,0xaa6633);boxesG.add(r);r.setData('origX',b.x);r.setData('origY',b.y);r.setData('onTarget',(board[b.y][b.x]&4)===4)}
+          playerG=this.add.rectangle(playerPos.x*CELL+10+CELL/2,playerPos.y*CELL+30+CELL/2,20,20,COLOR);
+          targetG=this.physics.add.staticGroup();
+          cursors=this.input.keyboard.createCursorKeys();
+          if(lv.movingTarget)this.time.addEvent({delay:10000,loop:true,callback:()=>{const t=lv.targets[Math.floor(Math.random()*lv.targets.length)];playerG.setPosition(t.x*CELL+10+CELL/2,t.y*CELL+30+CELL/2)}});
+          updateHud();
+          this.input.keyboard.on('keydown-U',()=>undo());
+        },
+        update(){
+          if(gameOver)return;
+          time+=16;
+          let dx=0,dy=0;
+          if(cursors.left.isDown){dx=-1}
+          else if(cursors.right.isDown){dx=1}
+          else if(cursors.up.isDown){dy=-1}
+          else if(cursors.down.isDown){dy=1}
+          if(dx||dy){
+            const nx=playerPos.x+dx,ny=playerPos.y+dy;
+            if(nx<0||nx>=gridSize||ny<0||ny>=gridSize)return;
+            let push=null;
+            if((board[ny][nx]&2)===2)push={x:nx,y:ny};
+            if(push){const bx=push.x+dx,by=push.y+dy;if(bx<0||bx>=gridSize||by<0||by>=gridSize)return;if((board[by][bx]&2)===2)return;board[push.y][push.x]&=~2;board[by][bx]|=2;const box=boxesG.getChildren().find(b=>b.getData('origX')===push.x&&b.getData('origY')===push.y);if(box){box.setPosition(bx*CELL+10+CELL/2,by*CELL+30+CELL/2);box.setData('origX',bx);box.setData('origY',by);box.setData('onTarget',(board[by][bx]&4)===4)}}
+            playerPos={x:nx,y:ny};playerG.setPosition(nx*CELL+10+CELL/2,ny*CELL+30+CELL/2);moves++;updateHud();
+            const remaining=lv.boxes.length-Array.from(boxesG.getChildren()).filter(b=>b.getData('onTarget')).length;
+            if(remaining===0){gameOver=true;saveHigh(10000-moves);if(currentLevel>=2){document.getElementById('g').innerHTML='<div style=color:#fff;text-align:center;padding:120px;font:24px monospace>ALL LEVELS CLEARED<br><br>Score: '+(10000-moves)+'<br>High: '+loadHigh()+'<br><br><a style=color:#9b59b6 href=javascript:location.reload()>Play again</a></div>'}else{setTimeout(()=>{currentLevel++;newGame()},1000)}}
+          }
+        }
+      }
+    });
+  }
+
+  function undo(){if(history.length===0)return;const s=history.pop();board[s.by][s.bx]&=~2;board[s.py][s.px]&=~2;board[s.py][s.px]|=2;playerPos={x:s.px,y:s.py};moves=Math.max(0,moves-1);newGame()}
+
+  newGame();
+})();
+</script></body></html>`;
+}
+
 export const tileMatch: Template = {
-  id: 'puzzle-tile-match',
-  genre: 'puzzle',
-  name: 'Tile Match',
-  defaultTheme: {
-    primary: '#00aa00', secondary: '#aa0000', playerLabel: 'cursor', enemyLabel: 'tile',
-    flavorText: '同色连线消除 — 4x4 棋盘,点空格切换颜色,3 连消 1 分。',
-  },
+  id: 'tileMatch', genre: 'puzzle', name: 'Tile Match',
+  howToPlay: 'click 2 adjacent tiles to swap · match 3+ same color',
+  defaultTheme: { primary: '#9b59b6', secondary: '#ffffff', playerLabel: 'tile', enemyLabel: 'block', flavorText: '3 消,经典 Bejeweled 式。' },
   render(theme: Theme): string {
-    const a = parseInt(theme.primary.slice(1), 16);
-    const b = parseInt(theme.secondary.slice(1), 16);
-    return `<!DOCTYPE html><html><head><meta charset="utf-8"><title>${theme.playerLabel}</title>
-<style>html,body{margin:0;background:#0a0a14;color:#fff;font-family:monospace;overflow:hidden;display:flex;justify-content:center;align-items:center;height:100vh}canvas{background:#111;border:1px solid #333}</style>
-</head><body><div id="g"></div>
-<script src="https://cdn.jsdelivr.net/npm/phaser@3.70.0/dist/phaser.min.js"></script>
-<script>
-(function(){
-  const A=${a},B=${b},PLAYER='${theme.playerLabel}';
-  const N=4,TS=80;
-  let grid=[],score=0,selected=null,scoreText;
-  new Phaser.Game({type:Phaser.AUTO,parent:'g',width:N*TS+200,height:N*TS+50,
-    scene:{
-      create(){
-        this.cameras.main.setBackgroundColor('#0a0a14');
-        for(let y=0;y<N;y++){grid[y]=[];for(let x=0;x<N;x++)grid[y][x]=Math.random()<0.5?0:1;}
-        scoreText=this.add.text(N*TS+20,20,'Score: 0',{fontSize:'18px',fill:'#fff'});
-        this.input.on('pointerdown',(p)=>{
-          const x=Math.floor(p.x/TS),y=Math.floor(p.y/TS);
-          if(x<0||x>=N||y<0||y>=N)return;
-          if(!selected){selected={x,y};return;}
-          const dx=Math.abs(selected.x-x),dy=Math.abs(selected.y-y);
-          if(dx+dy===1){
-            const t=grid[y][x];grid[y][x]=grid[selected.y][selected.x];grid[selected.y][selected.x]=t;
-            selected=null;check();
-          }else selected={x,y};
-        });
-      },
-      update(){
-        this.cameras.main;
-        for(let y=0;y<N;y++)for(let x=0;x<N;x++){
-          const c=grid[y][x]===0?A:B;
-          this.add.rectangle(x*TS+TS/2,y*TS+TS/2,TS-6,TS-6,c);
-        }
-        if(selected)this.add.rectangle(selected.x*TS+TS/2,selected.y*TS+TS/2,TS-6,TS-6,0xffffff);
-      }
-    }
-  });
-  function check(){
-    let changed=true,pass=0;
-    while(changed&&pass++<10){
-      changed=false;
-      const toClear=[];
-      for(let y=0;y<N;y++)for(let x=0;x<N-2;x++)if(grid[y][x]===grid[y][x+1]&&grid[y][x+1]===grid[y][x+2]){toClear.push([y,x],[y,x+1],[y,x+2]);changed=true;}
-      for(let x=0;x<N;x++)for(let y=0;y<N-2;y++)if(grid[y][x]===grid[y+1][x]&&grid[y+1][x]===grid[y+2][x]){toClear.push([y,x],[y+1,x],[y+2,x]);changed=true;}
-      for(const [y,x] of toClear){grid[y][x]=-1;score++;}
-      if(scoreText)scoreText.setText('Score: '+score);
-      for(let y=0;y<N;y++)for(let x=0;x<N;x++)if(grid[y][x]===-1)grid[y][x]=Math.random()<0.5?0:1;
-    }
-  }
-})();
-</script></body></html>`;
+    return buildTileMatch(theme, JSON.stringify(LEVEL_DATA.tileMatch), tileMatch.howToPlay, 'whimsy:score:tileMatch');
   },
 };
 
-// 2) Sokoban — push crates to goal squares.
 export const sokoban: Template = {
-  id: 'puzzle-sokoban',
-  genre: 'puzzle',
-  name: 'Sokoban',
-  defaultTheme: {
-    primary: '#ddaa44', secondary: '#a86b1a', playerLabel: 'pusher', enemyLabel: 'crate',
-    flavorText: '推箱子 — 把 3 个箱子推到目标点上,不能拉只能推。',
-  },
+  id: 'sokoban', genre: 'puzzle', name: 'Sokoban',
+  howToPlay: 'arrow keys push boxes onto targets · undo with U',
+  defaultTheme: { primary: '#9b59b6', secondary: '#ffffff', playerLabel: 'keeper', enemyLabel: 'crate', flavorText: '推箱子。' },
   render(theme: Theme): string {
-    const c = parseInt(theme.primary.slice(1), 16);
-    const g = parseInt(theme.secondary.slice(1), 16);
-    return `<!DOCTYPE html><html><head><meta charset="utf-8"><title>${theme.playerLabel}</title>
-<style>html,body{margin:0;background:#1a0e04;color:#fff;font-family:monospace;overflow:hidden;display:flex;justify-content:center;align-items:center;height:100vh}canvas{background:#2a1a08}</style>
-</head><body><div id="g"></div>
-<script src="https://cdn.jsdelivr.net/npm/phaser@3.70.0/dist/phaser.min.js"></script>
-<script>
-(function(){
-  const COLOR=${c},GOAL=${g},PLAYER='${theme.playerLabel}';
-  const TS=50,COLS=8,ROWS=8;
-  // 0=floor, 1=wall, 2=goal, 3=crate, 4=player, 5=crate-on-goal
-  const map=[
-    [1,1,1,1,1,1,1,1],
-    [1,4,0,0,0,1,0,1],
-    [1,0,1,1,0,1,0,1],
-    [1,0,1,0,3,0,3,1],
-    [1,0,1,3,0,1,0,1],
-    [1,0,0,0,1,0,0,1],
-    [1,0,2,2,2,0,2,1],
-    [1,1,1,1,1,1,1,1],
-  ];
-  let player, scoreText, won=false, moves=0;
-  new Phaser.Game({type:Phaser.AUTO,parent:'g',width:COLS*TS,height:ROWS*TS+30,
-    scene:{
-      create(){
-        this.cameras.main.setBackgroundColor('#1a0e04');
-        scoreText=this.add.text(8,ROWS*TS+6,'Moves: 0 · Place 3 crates on goals',{fontSize:'14px',fill:'#fff'});
-        this.input.keyboard.on('keydown',(e)=>{
-          if(won)return;
-          const dir={ArrowUp:[0,-1],ArrowDown:[0,1],ArrowLeft:[-1,0],ArrowRight:[1,0]}[e.code];
-          if(!dir)return;
-          const px=Math.floor(player.x/TS),py=Math.floor(player.y/TS);
-          const nx=px+dir[0],ny=py+dir[1];
-          if(map[ny][nx]===1)return;
-          if(map[ny][nx]===3||map[ny][nx]===5){
-            const cx=nx+dir[0],cy=ny+dir[1];
-            if(map[cy][cx]===1||map[cy][cx]===3||map[cy][cx]===5)return;
-            map[cy][cx]=map[cy][cx]===2?5:3;map[ny][nx]=map[ny][nx]===5?2:0;
-          }
-          player.x=nx*TS;player.y=ny*TS;moves++;scoreText.setText('Moves: '+moves);
-          let onGoal=0;for(let y=0;y<ROWS;y++)for(let x=0;x<COLS;x++)if(map[y][x]===5)onGoal++;
-          if(onGoal>=3){won=true;this.add.text(80,180,'SOLVED!',{fontSize:'32px',fill:'#88ff88'});}
-        });
-      },
-      update(){
-        this.cameras.main;
-        for(let y=0;y<ROWS;y++)for(let x=0;x<COLS;x++){
-          const v=map[y][x];
-          if(v===1)this.add.rectangle(x*TS+TS/2,y*TS+TS/2,TS,TS,0x3a1f08);
-          if(v===2)this.add.rectangle(x*TS+TS/2,y*TS+TS/2,TS-6,TS-6,GOAL);
-          if(v===3)this.add.rectangle(x*TS+TS/2,y*TS+TS/2,TS-6,TS-6,0x886622);
-          if(v===5)this.add.rectangle(x*TS+TS/2,y*TS+TS/2,TS-6,TS-6,GOAL);
-          if(v===4&&!player){player=this.add.rectangle(x*TS+TS/2,y*TS+TS/2,TS-8,TS-8,COLOR);}
-        }
-        if(player){
-          this.add.rectangle(player.x,player.y,TS-8,TS-8,COLOR);
-          player.setVisible(false); // drawn above to keep z-order
-        }
-      }
-    }
-  });
-})();
-</script></body></html>`;
+    return buildSokoban(theme, JSON.stringify(LEVEL_DATA.sokoban), sokoban.howToPlay, 'whimsy:score:sokoban');
   },
 };
 
-// 3) Lights Out — click a cell toggles it + 4 neighbors, reach all-off.
-export const lightsOut: Template = {
-  id: 'puzzle-lights-out',
-  genre: 'puzzle',
-  name: 'Lights Out',
-  defaultTheme: {
-    primary: '#ffcc00', secondary: '#222', playerLabel: 'toggler', enemyLabel: 'lit',
-    flavorText: '灭灯游戏 — 点一格翻转自己和邻接 4 格,全灭算赢。',
-  },
-  render(theme: Theme): string {
-    const c = parseInt(theme.primary.slice(1), 16);
-    return `<!DOCTYPE html><html><head><meta charset="utf-8"><title>${theme.playerLabel}</title>
-<style>html,body{margin:0;background:#000;color:#fff;font-family:monospace;overflow:hidden;display:flex;justify-content:center;align-items:center;height:100vh}canvas{background:#0a0a0a}</style>
-</head><body><div id="g"></div>
-<script src="https://cdn.jsdelivr.net/npm/phaser@3.70.0/dist/phaser.min.js"></script>
-<script>
-(function(){
-  const COLOR=${c},PLAYER='${theme.playerLabel}';
-  const N=5,TS=80;
-  let grid=[],moves=0,statusText,won=false;
-  for(let y=0;y<N;y++){grid[y]=[];for(let x=0;x<N;x++)grid[y][x]=Math.random()<0.5?1:0;}
-  new Phaser.Game({type:Phaser.AUTO,parent:'g',width:N*TS,height:N*TS+40,
-    scene:{
-      create(){
-        this.cameras.main.setBackgroundColor('#0a0a0a');
-        statusText=this.add.text(8,N*TS+8,'Moves: 0 · Toggle all off',{fontSize:'14px',fill:'#fff'});
-        this.input.on('pointerdown',(p)=>{
-          if(won)return;
-          const x=Math.floor(p.x/TS),y=Math.floor(p.y/TS);
-          if(x<0||x>=N||y<0||y>=N)return;
-          for(const [dx,dy] of [[0,0],[1,0],[-1,0],[0,1],[0,-1]]){
-            const nx=x+dx,ny=y+dy;
-            if(nx>=0&&nx<N&&ny>=0&&ny<N)grid[ny][nx]=1-grid[ny][nx];
-          }
-          moves++;
-          let off=0;for(let y=0;y<N;y++)for(let x=0;x<N;x++)if(!grid[y][x])off++;
-          statusText.setText('Moves: '+moves+(off===N*N?' · SOLVED!':''));
-          if(off===N*N){won=true;this.add.text(120,180,'DARK!',{fontSize:'32px',fill:'#aaffaa'});}
-        });
-      },
-      update(){
-        this.cameras.main;
-        for(let y=0;y<N;y++)for(let x=0;x<N;x++){
-          this.add.rectangle(x*TS+TS/2,y*TS+TS/2,TS-4,TS-4,grid[y][x]?COLOR:0x222222);
-        }
-      }
-    }
-  });
-})();
-</script></body></html>`;
-  },
-};
-
-// 4) Number Link — connect same digits with paths that don't cross.
-export const numberLink: Template = {
-  id: 'puzzle-number-link',
-  genre: 'puzzle',
-  name: 'Number Link',
-  defaultTheme: {
-    primary: '#66ddff', secondary: '#113355', playerLabel: 'linker', enemyLabel: 'cell',
-    flavorText: '数字连线 — 同数字首尾连成不交叉路径,填满所有格子。',
-  },
-  render(theme: Theme): string {
-    const c = parseInt(theme.primary.slice(1), 16);
-    return `<!DOCTYPE html><html><head><meta charset="utf-8"><title>${theme.playerLabel}</title>
-<style>html,body{margin:0;background:#02080f;color:#fff;font-family:monospace;overflow:hidden;display:flex;justify-content:center;align-items:center;height:100vh}canvas{background:#02080f}</style>
-</head><body><div id="g"></div>
-<script src="https://cdn.jsdelivr.net/npm/phaser@3.70.0/dist/phaser.min.js"></script>
-<script>
-(function(){
-  const COLOR=${c},PLAYER='${theme.playerLabel}';
-  const N=5,TS=72;
-  // Each cell either 0 (empty), or a digit 1..4 with each digit appearing exactly twice.
-  const seeds=[[0,0,1],[0,4,2],[4,0,3],[4,4,4],[2,2,1],[2,1,2],[1,3,3],[3,2,4]];
-  let grid=Array.from({length:N},()=>Array(N).fill(0));
-  seeds.forEach(([y,x,v])=>{grid[y][x]=v;});
-  let paths={},drawing=null,statusText;
-  new Phaser.Game({type:Phaser.AUTO,parent:'g',width:N*TS,height:N*TS+30,
-    scene:{
-      create(){
-        this.cameras.main.setBackgroundColor('#02080f');
-        statusText=this.add.text(8,N*TS+6,'Click two same digits to link them',{fontSize:'13px',fill:'#fff'});
-        this.input.on('pointerdown',(p)=>{
-          const x=Math.floor(p.x/TS),y=Math.floor(p.y/TS);
-          if(x<0||x>=N||y<0||y>=N)return;
-          const v=grid[y][x];
-          if(!v)return;
-          if(!drawing||drawing.v!==v){drawing={v,start:[x,y]};return;}
-          if(drawing.start[0]===x&&drawing.start[1]===y)return;
-          paths[v]=[[drawing.start[1],drawing.start[0]],[y,x]];
-          drawing=null;
-        });
-      },
-      update(){
-        this.cameras.main;
-        for(let y=0;y<N;y++)for(let x=0;x<N;x++){
-          this.add.rectangle(x*TS+TS/2,y*TS+TS/2,TS-4,TS-4,grid[y][x]?0x224466:0x0a1822);
-          if(grid[y][x])this.add.text(x*TS+24,y*TS+18,String(grid[y][x]),{fontSize:'22px',fill:'#fff'});
-        }
-        for(const v in paths){
-          const pts=paths[v];
-          if(pts.length>=2){
-            for(let i=0;i<pts.length-1;i++){
-              const [y1,x1]=pts[i],[y2,x2]=pts[i+1];
-              const cx=(x1+x2)/2*TS+TS/2,cy=(y1+y2)/2*TS+TS/2;
-              this.add.rectangle(cx,cy,TS-4,TS-4,COLOR);
-            }
-          }
-        }
-      }
-    }
-  });
-})();
-</script></body></html>`;
-  },
-};
-
-// 5) Sliding-15 — classic 15-puzzle, slide tiles back to order.
-export const sliding15: Template = {
-  id: 'puzzle-sliding-15',
-  genre: 'puzzle',
-  name: 'Sliding-15',
-  defaultTheme: {
-    primary: '#eee', secondary: '#444', playerLabel: 'slider', enemyLabel: 'tile',
-    flavorText: '15 数字华容道 — 点邻接空格滑过去,顺序还原算赢。',
-  },
-  render(theme: Theme): string {
-    const c = parseInt(theme.primary.slice(1), 16);
-    return `<!DOCTYPE html><html><head><meta charset="utf-8"><title>${theme.playerLabel}</title>
-<style>html,body{margin:0;background:#101418;color:#fff;font-family:monospace;overflow:hidden;display:flex;justify-content:center;align-items:center;height:100vh}canvas{background:#101418}</style>
-</head><body><div id="g"></div>
-<script src="https://cdn.jsdelivr.net/npm/phaser@3.70.0/dist/phaser.min.js"></script>
-<script>
-(function(){
-  const COLOR=${c},PLAYER='${theme.playerLabel}';
-  const N=4,TS=100;
-  let tiles=[],moves=0,statusText,won=false;
-  for(let i=1;i<=N*N-1;i++)tiles.push(i);tiles.push(0);
-  for(let k=0;k<200;k++){
-    const blank=find(0),r=Math.floor(Math.random()*4);
-    const [dx,dy]=[[1,0],[-1,0],[0,1],[0,-1]][r];
-    const nx=blank[0]+dx,ny=blank[1]+dy;
-    if(nx>=0&&nx<N&&ny>=0&&ny<N){
-      const t=tiles[ny*N+nx];tiles[blank[1]*N+blank[0]]=t;tiles[ny*N+nx]=0;
-    }
-  }
-  function find(v){for(let y=0;y<N;y++)for(let x=0;x<N;x++)if(tiles[y*N+x]===v)return[x,y];return[0,0];}
-  new Phaser.Game({type:Phaser.AUTO,parent:'g',width:N*TS,height:N*TS+30,
-    scene:{
-      create(){
-        this.cameras.main.setBackgroundColor('#101418');
-        statusText=this.add.text(8,N*TS+6,'Moves: 0',{fontSize:'14px',fill:'#fff'});
-        this.input.on('pointerdown',(p)=>{
-          if(won)return;
-          const x=Math.floor(p.x/TS),y=Math.floor(p.y/TS);
-          if(x<0||x>=N||y<0||y>=N)return;
-          const blank=find(0);
-          if(Math.abs(blank[0]-x)+Math.abs(blank[1]-y)!==1)return;
-          const t=tiles[y*N+x];tiles[y*N+x]=0;tiles[blank[1]*N+blank[0]]=t;
-          moves++;statusText.setText('Moves: '+moves);
-          let ordered=true;for(let i=0;i<N*N-1;i++)if(tiles[i]!==i+1){ordered=false;break;}
-          if(ordered){won=true;this.add.text(120,200,'SOLVED!',{fontSize:'32px',fill:'#aaffaa'});}
-        });
-      },
-      update(){
-        this.cameras.main;
-        for(let y=0;y<N;y++)for(let x=0;x<N;x++){
-          const v=tiles[y*N+x];
-          if(v===0){this.add.rectangle(x*TS+TS/2,y*TS+TS/2,TS-4,TS-4,0x101418);continue;}
-          this.add.rectangle(x*TS+TS/2,y*TS+TS/2,TS-4,TS-4,COLOR);
-          this.add.text(x*TS+34,y*TS+34,String(v),{fontSize:'32px',fill:'#222'});
-        }
-      }
-    }
-  });
-})();
-</script></body></html>`;
-  },
-};
-
-export const PUZZLE_TEMPLATES: Template[] = [
-  tileMatch,
-  sokoban,
-  lightsOut,
-  numberLink,
-  sliding15,
-];
+export const PUZZLE_TEMPLATES: Template[] = [tileMatch, sokoban];
