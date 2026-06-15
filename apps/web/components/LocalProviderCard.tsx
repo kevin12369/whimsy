@@ -36,6 +36,7 @@ export function LocalProviderCard() {
   const [model, setModel] = useState(readLs(KEYS.model));
   const [apiKey, setApiKey] = useState(readLs(KEYS.apiKey));
   const [timeoutMs, setTimeoutMs] = useState(readLs(KEYS.timeoutMs, '30000'));
+  const [useLocal, setUseLocal] = useState(readLs('whimsy:useLocal') === 'true');
   const [status, setStatus] = useState<string>('');
   const [testing, setTesting] = useState(false);
 
@@ -44,6 +45,7 @@ export function LocalProviderCard() {
   useEffect(() => { writeLs(KEYS.model, model); }, [model]);
   useEffect(() => { writeLs(KEYS.apiKey, apiKey); }, [apiKey]);
   useEffect(() => { writeLs(KEYS.timeoutMs, timeoutMs); }, [timeoutMs]);
+  useEffect(() => { writeLs('whimsy:useLocal', useLocal ? 'true' : 'false'); }, [useLocal]);
 
   async function testConnection() {
     setTesting(true);
@@ -91,9 +93,21 @@ export function LocalProviderCard() {
     <div className="border border-zinc-700 rounded p-3 flex flex-col gap-2 text-sm" data-testid="local-provider-card">
       <h3 className="font-medium text-zinc-200">Local LLM</h3>
       <p className="text-xs text-zinc-500">Run generation on your machine. Saves Cloudflare quota.</p>
+      <label className="flex items-center gap-2 text-zinc-200 cursor-pointer" htmlFor="local-useLocal">
+        <input
+          id="local-useLocal"
+          type="checkbox"
+          checked={useLocal}
+          onChange={(e) => setUseLocal(e.target.checked)}
+          data-testid="local-use-local-toggle"
+          className="rounded bg-zinc-800 border-zinc-700"
+        />
+        <span>Use local LLM (route generation here instead of Cloudflare)</span>
+      </label>
       <p className="text-xs text-amber-400/80">
-        Running on GitHub Pages (https)? Mixed-content blocks localhost reads.
-        Use <code className="text-amber-300">pnpm --filter @whimsy/web dev</code> locally to test connection.
+        LM Studio: enable CORS in <em>Local Server &rarr; CORS &rarr; Allow any origin</em>, then restart the server.<br />
+        Ollama: set <code className="text-amber-300">OLLAMA_ORIGINS=*</code> before <code className="text-amber-300">ollama serve</code>.<br />
+        On GitHub Pages (https) the request is sent but the response is unread; run <code className="text-amber-300">pnpm dev</code> locally to test end-to-end.
       </p>
 
       <label className="text-zinc-300" htmlFor="local-prov">Provider</label>

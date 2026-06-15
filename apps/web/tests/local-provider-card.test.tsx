@@ -137,4 +137,21 @@ describe('LocalProviderCard', () => {
     fireEvent.click(screen.getByRole('button', { name: /test/i }));
     await waitFor(() => expect(screen.getByText(/unreachable/i)).toBeDefined());
   });
+
+  it('renders Use local LLM toggle, default unchecked, writes to localStorage on check', () => {
+    render(<LocalProviderCard />);
+    const toggle = screen.getByTestId('local-use-local-toggle') as HTMLInputElement;
+    expect(toggle.checked).toBe(false);
+    expect(localStorage.getItem('whimsy:useLocal')).toBe('false');
+    fireEvent.click(toggle);
+    expect(toggle.checked).toBe(true);
+    expect(localStorage.getItem('whimsy:useLocal')).toBe('true');
+  });
+
+  it('loads Use local LLM toggle from localStorage on mount', () => {
+    localStorage.setItem('whimsy:useLocal', 'true');
+    render(<LocalProviderCard />);
+    const toggle = screen.getByTestId('local-use-local-toggle') as HTMLInputElement;
+    expect(toggle.checked).toBe(true);
+  });
 });
