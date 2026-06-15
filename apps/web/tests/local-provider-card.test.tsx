@@ -46,4 +46,52 @@ describe('LocalProviderCard', () => {
     });
     expect(fetchSpy).toHaveBeenCalled();
   });
+
+  it('test connection with LM Studio (openai-compatible + /v1) hits /v1/models', async () => {
+    localStorage.setItem('whimsy:local:provider', 'openai-compatible');
+    localStorage.setItem('whimsy:local:baseUrl', 'http://localhost:1234/v1');
+    localStorage.setItem('whimsy:local:model', 'qwen2.5-coder:7b');
+    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response('{}', { status: 200 }));
+    render(<LocalProviderCard />);
+    fireEvent.click(screen.getByRole('button', { name: /test/i }));
+    await waitFor(() => expect(screen.getByText(/connected/i)).toBeDefined());
+    const calledUrl = fetchSpy.mock.calls[0]![0] as string;
+    expect(calledUrl).toBe('http://localhost:1234/v1/models');
+  });
+
+  it('test connection with openai-compatible + baseUrl missing /v1 prepends /v1', async () => {
+    localStorage.setItem('whimsy:local:provider', 'openai-compatible');
+    localStorage.setItem('whimsy:local:baseUrl', 'http://localhost:1234');
+    localStorage.setItem('whimsy:local:model', 'm');
+    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response('{}', { status: 200 }));
+    render(<LocalProviderCard />);
+    fireEvent.click(screen.getByRole('button', { name: /test/i }));
+    await waitFor(() => expect(screen.getByText(/connected/i)).toBeDefined());
+    const calledUrl = fetchSpy.mock.calls[0]![0] as string;
+    expect(calledUrl).toBe('http://localhost:1234/v1/models');
+  });
+
+  it('test connection with ollama hits /api/tags, never /v1', async () => {
+    localStorage.setItem('whimsy:local:provider', 'ollama');
+    localStorage.setItem('whimsy:local:baseUrl', 'http://localhost:11434');
+    localStorage.setItem('whimsy:local:model', 'llama3.1:8b');
+    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response('{}', { status: 200 }));
+    render(<LocalProviderCard />);
+    fireEvent.click(screen.getByRole('button', { name: /test/i }));
+    await waitFor(() => expect(screen.getByText(/connected/i)).toBeDefined());
+    const calledUrl = fetchSpy.mock.calls[0]![0] as string;
+    expect(calledUrl).toBe('http://localhost:11434/api/tags');
+  });
+
+  it('test connection strips trailing slash on baseUrl', async () => {
+    localStorage.setItem('whimsy:local:provider', 'openai-compatible');
+    localStorage.setItem('whimsy:local:baseUrl', 'http://localhost:1234/v1/');
+    localStorage.setItem('whimsy:local:model', 'm');
+    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response('{}', { status: 200 }));
+    render(<LocalProviderCard />);
+    fireEvent.click(screen.getByRole('button', { name: /test/i }));
+    await waitFor(() => expect(screen.getByText(/connected/i)).toBeDefined());
+    const calledUrl = fetchSpy.mock.calls[0]![0] as string;
+    expect(calledUrl).toBe('http://localhost:1234/v1/models');
+  });
 });

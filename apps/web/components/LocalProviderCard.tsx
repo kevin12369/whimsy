@@ -49,7 +49,14 @@ export function LocalProviderCard() {
     setTesting(true);
     setStatus('Testing...');
     try {
-      const url = baseUrl.replace(/\/$/, '') + (provider === 'ollama' ? '/api/tags' : '/models');
+      const trimmed = baseUrl.replace(/\/$/, '');
+      // Ollama uses root + /api/tags; OpenAI-compatible providers (LM Studio /
+      // vLLM / llama.cpp) expose models at /v1/models. If the user's baseUrl
+      // already ends in /v1, dedupe so we don't request /v1/v1/models.
+      const path = provider === 'ollama'
+        ? '/api/tags'
+        : trimmed.endsWith('/v1') ? '/models' : '/v1/models';
+      const url = trimmed + path;
       const headers: Record<string, string> = {};
       if (apiKey) headers['Authorization'] = `Bearer ${apiKey}`;
       const res = await fetch(url, { method: 'GET', headers });
