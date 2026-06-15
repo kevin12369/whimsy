@@ -72,10 +72,13 @@ export function LocalProviderCard() {
       // (so we can confirm reachability) but the response is opaque and unread.
       try {
         await fetch(url, { method: 'GET', mode: 'no-cors', headers, signal: AbortSignal.timeout(5000) });
-        setStatus(
-          `Network reachable, but GitHub Pages (https) can't read http://${trimmed.replace(/^https?:\/\//, '')} response. ` +
-          `Run \`pnpm --filter @whimsy/web dev\` locally to test connection end-to-end.`,
-        );
+        const onHttps = typeof window !== 'undefined' && window.location.protocol === 'https:';
+        const tip = onHttps
+          ? `Network reachable, but this page is https — it can't read http://${trimmed.replace(/^https?:\/\//, '')} response. ` +
+            `Run \`pnpm --filter @whimsy/web dev\` and open http://localhost:3000/whimsy/ locally to test.`
+          : `Network reachable, but the browser blocked the response. ` +
+            `Check your LLM server is running and its CORS allowlist includes ${window.location.origin}.`;
+        setStatus(tip);
       } catch (e2) {
         setStatus(`Unreachable: ${(e2 as Error).message}`);
       }
