@@ -113,6 +113,19 @@ describe('LocalProviderCard', () => {
     expect(fallbackInit.mode).toBe('no-cors');
   });
 
+  it('no-cors fallback on http page mentions CORS allowlist (not GitHub Pages hint)', async () => {
+    // vitest jsdom defaults to http://localhost/
+    localStorage.setItem('whimsy:local:provider', 'openai-compatible');
+    localStorage.setItem('whimsy:local:baseUrl', 'http://127.0.0.1:1234/v1');
+    localStorage.setItem('whimsy:local:model', 'm');
+    vi.spyOn(globalThis, 'fetch')
+      .mockRejectedValueOnce(new TypeError('Failed to fetch'))
+      .mockResolvedValueOnce(new Response('ok', { status: 200 }));
+    render(<LocalProviderCard />);
+    fireEvent.click(screen.getByRole('button', { name: /test/i }));
+    await waitFor(() => expect(screen.getByText(/CORS allowlist/i)).toBeDefined());
+  });
+
   it('test connection reports Unreachable when both normal and no-cors fetch fail', async () => {
     localStorage.setItem('whimsy:local:provider', 'ollama');
     localStorage.setItem('whimsy:local:baseUrl', 'http://localhost:11434');
