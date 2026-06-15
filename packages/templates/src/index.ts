@@ -1,6 +1,9 @@
 export { TEMPLATES, getTemplate, getAllTemplates } from './registry';
 export { cacheKey, normalizeTheme, hashString } from './cache';
-export { PLATFORMER_TEMPLATES, sideScrollerComet } from './platformer';
-export { SHOOTER_TEMPLATES, twinStickBattler } from './shooter';
-export { PUZZLE_TEMPLATES, tileMatch } from './puzzle';
+export { sideScrollerComet } from './platformer';
+export { verticalShmup, twinStickBattler } from './shooter';
+export { tileMatch, sokoban } from './puzzle';
+export { recordEnd, getHighScore, clearAll } from './score-store';
+export { renderHud, hudStyles } from './hud';
+export { LEVEL_DATA, BOSS_DATA } from './level-data';
 export type { Template, Theme } from './types';
