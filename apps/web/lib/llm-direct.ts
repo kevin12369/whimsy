@@ -15,7 +15,7 @@ export interface GenerateResult {
 }
 
 const SYSTEM_PROMPT =
-  'You are a Phaser 3 game generator. Output a single complete HTML file with Phaser loaded from https://cdn.jsdelivr.net/npm/phaser@3.70.0/dist/phaser.min.js. The HTML must be self-contained, under 200KB, with no fetch/XMLHttpRequest/eval/localStorage/window.parent calls. Do not include explanations, just the HTML.';
+  'You are a Phaser 3 game generator. Output a single complete HTML file with Phaser loaded from https://cdn.jsdelivr.net/npm/phaser@3.70.0/dist/phaser.min.js. The HTML must be self-contained, under 200KB, with no fetch/XMLHttpRequest/eval/localStorage/window.parent calls. Do not include explanations, just the HTML. Do not use base64-encoded image data URIs — draw visuals with Phaser.GameObjects.Rectangle, Graphics, or Text instead. Keep total output well under 8000 tokens so the response finishes within 60 seconds on a 14B model.';
 
 function validateBaseUrl(url: string | undefined): string {
   if (!url) throw new Error('localBaseUrl is required');
