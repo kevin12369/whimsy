@@ -70,8 +70,9 @@ export default function Home() {
       setGenResult(r);
       // Pipe the generated HTML into the GamePreview iframe (overrideHtml).
       if (r.ok && r.html) {
-        const extracted = r.html.length > 4096 ? r.html : r.html;
-        setOverrideHtml(extracted);
+        // Strip markdown code fences the LLM wraps around the HTML.
+        const stripped = r.html.replace(/^[\s\S]*?```(?:html|HTML)?\s*\n/, '').replace(/\n```\s*$/, '').trim();
+        setOverrideHtml(stripped);
         setSampleName(`Generated: ${p.text.slice(0, 40)}…`);
       }
       // Try to also build a share URL for the current view

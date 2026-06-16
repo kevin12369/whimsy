@@ -49,7 +49,9 @@ async function callOllama(input: Required<Pick<GenerateInput, 'text' | 'localBas
       throw new Error(`Ollama ${res.status}: ${text}`);
     }
     const json = (await res.json()) as { response?: string };
-    return { text: json.response ?? '' };
+    const raw = json.response ?? '';
+    const text = raw.replace(/^[\s\S]*?```(?:html|HTML)?\s*\n/, '').replace(/\n```\s*$/, '').trim() || raw.trim();
+    return { text };
   } finally {
     clearTimeout(timer);
   }
@@ -79,7 +81,9 @@ async function callOpenAiCompatible(input: Required<Pick<GenerateInput, 'text' |
       throw new Error(`OAI-compatible ${res.status}: ${text}`);
     }
     const json = (await res.json()) as { choices?: { message?: { content?: string } }[] };
-    const text = json.choices?.[0]?.message?.content ?? '';
+    const raw = json.choices?.[0]?.message?.content ?? '';
+    // Strip markdown code fences the LLM wraps around the HTML.
+    const text = raw.replace(/^[\s\S]*?```(?:html|HTML)?\s*\n/, '').replace(/\n```\s*$/, '').trim() || raw.trim();
     return { text };
   } finally {
     clearTimeout(timer);
