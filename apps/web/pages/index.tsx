@@ -68,9 +68,15 @@ export default function Home() {
     try {
       const r = await generateWithLocalLLM(p);
       setGenResult(r);
+      // Pipe the generated HTML into the GamePreview iframe (overrideHtml).
+      if (r.ok && r.html) {
+        const extracted = r.html.length > 4096 ? r.html : r.html;
+        setOverrideHtml(extracted);
+        setSampleName(`Generated: ${p.text.slice(0, 40)}…`);
+      }
       // Try to also build a share URL for the current view
       try {
-        const html = current.render(theme);
+        const html = r.ok && r.html ? r.html : current.render(theme);
         const url = encodeShareUrl(html);
         if (isOversize(url)) {
           const id = `gen-${Date.now().toString(36)}`;
@@ -171,7 +177,7 @@ export default function Home() {
             <InputForm onSubmit={onGenerate} disabled={genBusy} defaultExpanded />
             {genError && <p className="mt-2 text-xs text-red-300">⚠ {genError}</p>}
             {genResult?.ok && (
-              <p className="mt-2 text-xs text-emerald-300">✓ Generated {genResult.bytes} bytes. (Preview-only on GitHub Pages — paste the HTML into a local file to play.)</p>
+              <p className="mt-2 text-xs text-emerald-300">✓ Generated {genResult.bytes} bytes. Now playing in the preview above. Use the share button to copy a URL.</p>
             )}
             <p className="mt-3 text-[10px] text-zinc-500">
               Try one of these prompts above: {SAMPLE_PROMPTS.map((s) => s.blurb).join(' · ')}
