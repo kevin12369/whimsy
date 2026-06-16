@@ -147,25 +147,13 @@ export default function Home() {
 
         {/* Big preview: 70vh, fills the page */}
         <section id="demo" className="h-[70vh] w-full bg-black">
-          {overrideHtml && !overrideHtml.trim().toLowerCase().endsWith('</html>') ? (
-            <div className="w-full h-full flex flex-col items-center justify-center text-zinc-300 p-6 text-center">
-              <p className="text-amber-400 font-medium">Generated HTML appears truncated (no closing &lt;/html&gt; tag).</p>
-              <p className="text-xs text-zinc-500 mt-2">The LLM response hit its token limit before completing the game. Try a simpler prompt, or use a smaller/faster model.</p>
-              <button
-                type="button"
-                onClick={() => { setOverrideHtml(null); setGenResult(null); }}
-                className="mt-4 rounded bg-zinc-700 hover:bg-zinc-600 text-zinc-100 px-3 py-1 text-sm"
-              >Dismiss</button>
-            </div>
-          ) : (
-            <iframe
-              key={previewTemplateId + (sampleHtml ? ':sample' : ':template') + (overrideHtml ? ':override' : '')}
-              title={previewTitle}
-              srcDoc={previewHtml}
-              sandbox="allow-scripts"
-              className="w-full h-full bg-black border-0"
-            />
-          )}
+          <iframe
+            key={previewTemplateId + (sampleHtml ? ':sample' : ':template') + (overrideHtml ? ':override' : '')}
+            title={previewTitle}
+            srcDoc={previewHtml}
+            sandbox="allow-scripts"
+            className="w-full h-full bg-black border-0"
+          />
         </section>
 
         {/* Export toolbar (PR-3: Copy / Export / Edit) */}
