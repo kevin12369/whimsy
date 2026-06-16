@@ -15,7 +15,7 @@ export interface GenerateResult {
 }
 
 const SYSTEM_PROMPT =
-  'You are a Phaser 3 game generator. Output a single complete HTML file with Phaser loaded from https://cdn.jsdelivr.net/npm/phaser@3.70.0/dist/phaser.min.js. The HTML must be self-contained, under 200KB, with no fetch/XMLHttpRequest/eval/localStorage/window.parent calls. Do not include explanations, just the HTML. Do not use base64-encoded image data URIs — draw visuals with Phaser.GameObjects.Rectangle, Graphics, or Text instead. Keep total output well under 8000 tokens so the response finishes within 60 seconds on a 14B model.';
+  'You are a Phaser 3 game generator. Output a single complete HTML file with Phaser loaded from https://cdn.jsdelivr.net/npm/phaser@3.70.0/dist/phaser.min.js. The HTML must be self-contained, under 200KB, with no fetch/XMLHttpRequest/eval/localStorage/window.parent calls. Do not include explanations, just the HTML. Do not use base64-encoded image data URIs — draw visuals with Phaser.GameObjects.Rectangle, Graphics, or Text instead. Keep total output well under 4000 tokens so the response finishes within 60 seconds on a 14B model. CRITICAL: the response MUST end with closing </script></body></html> — a truncated HTML file will not run. Prefer a smaller, complete game over a larger, incomplete one.';
 
 function validateBaseUrl(url: string | undefined): string {
   if (!url) throw new Error('localBaseUrl is required');
@@ -33,7 +33,7 @@ async function callOllama(input: Required<Pick<GenerateInput, 'text' | 'localBas
     model: input.localModel,
     prompt: `${SYSTEM_PROMPT}\n\n${input.text}`,
     stream: false,
-    options: { temperature: 0.4, num_predict: 4000 },
+    options: { temperature: 0.4, num_predict: 6000 },
   };
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), input.localTimeoutMs);
@@ -63,7 +63,7 @@ async function callOpenAiCompatible(input: Required<Pick<GenerateInput, 'text' |
       { role: 'system', content: SYSTEM_PROMPT },
       { role: 'user', content: input.text },
     ],
-    max_tokens: 4000,
+    max_tokens: 6000,
     temperature: 0.4,
   };
   const headers: Record<string, string> = { 'Content-Type': 'application/json' };
