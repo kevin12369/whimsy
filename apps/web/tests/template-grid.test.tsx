@@ -9,6 +9,8 @@ const fakeTemplates: Template[] = Array.from({ length: 5 }, (_, i) => ({
   name: `Template ${i}`,
   howToPlay: '← → move',
   defaultTheme: { primary: '#000', secondary: '#fff', playerLabel: 'p', enemyLabel: 'e', flavorText: '' },
+  consumes: [],
+  clamp: {},
   render: () => '<!DOCTYPE html><html></html>',
 }));
 
