@@ -151,7 +151,7 @@ export default function Home() {
             key={previewTemplateId + (sampleHtml ? ':sample' : ':template') + (overrideHtml ? ':override' : '')}
             title={previewTitle}
             srcDoc={previewHtml}
-            sandbox="allow-scripts"
+            sandbox="allow-scripts allow-same-origin"
             className="w-full h-full bg-black border-0"
           />
         </section>

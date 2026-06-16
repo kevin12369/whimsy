@@ -71,11 +71,8 @@ export function DocumentMeta(): ReactElement {
         httpEquiv="Content-Security-Policy"
         content={[
           "default-src 'none'",
-          // Script src restricted to self + pinned Phaser CDN; no unsafe-inline / unsafe-eval.
           "script-src 'self' https://cdn.jsdelivr.net/npm/phaser@3.70.0/",
-          // Style src allows self + unsafe-inline (Tailwind injects styles via inline <style> at dev/build time).
           "style-src 'self' 'unsafe-inline'",
-          // img-src opens up to shields.io for the StatusBadges row. data: covers blob-into-img fallbacks.
           "img-src 'self' data: https://img.shields.io",
           "connect-src 'self' http://localhost:* http://127.0.0.1:*",
           "frame-src 'self'",
@@ -97,6 +94,22 @@ export default function Document() {
         <meta charSet="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <DocumentMeta />
+        <meta
+          httpEquiv="Content-Security-Policy"
+          content={[
+            "default-src 'none'",
+            "script-src 'self' https://cdn.jsdelivr.net/npm/phaser@3.70.0/",
+            "style-src 'self' 'unsafe-inline'",
+            "img-src 'self' data: https://img.shields.io",
+            "connect-src 'self' http://localhost:* http://127.0.0.1:*",
+            "frame-src 'self'",
+            "base-uri 'none'",
+            "form-action 'none'",
+            "object-src 'none'",
+            "worker-src 'none'",
+            "manifest-src 'none'",
+          ].join('; ')}
+        />
       </Head>
       <body>
         <Main />
