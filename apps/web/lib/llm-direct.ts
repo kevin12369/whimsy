@@ -33,7 +33,7 @@ async function callOllama(input: Required<Pick<GenerateInput, 'text' | 'localBas
     model: input.localModel,
     prompt: `${SYSTEM_PROMPT}\n\n${input.text}`,
     stream: false,
-    options: { temperature: 0.4, num_predict: 6000 },
+    options: { temperature: 0.4, num_predict: -1 },
   };
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), input.localTimeoutMs);
@@ -63,7 +63,7 @@ async function callOpenAiCompatible(input: Required<Pick<GenerateInput, 'text' |
       { role: 'system', content: SYSTEM_PROMPT },
       { role: 'user', content: input.text },
     ],
-    max_tokens: 6000,
+    max_tokens: -1,
     temperature: 0.4,
   };
   const headers: Record<string, string> = { 'Content-Type': 'application/json' };

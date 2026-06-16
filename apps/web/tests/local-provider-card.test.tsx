@@ -18,7 +18,7 @@ describe('LocalProviderCard', () => {
     expect(screen.getByLabelText('Base URL', { selector: 'input' })).toBeDefined();
     expect(screen.getByLabelText('Local model')).toBeDefined();
     expect(screen.getByLabelText('Local API key (optional)')).toBeDefined();
-    expect(screen.getByLabelText(/Timeout \(ms, 1000-120000/)).toBeDefined();
+    expect(screen.getByLabelText(/Timeout \(ms, 1000-600000/)).toBeDefined();
   });
 
   it('loads values from localStorage on mount', () => {
