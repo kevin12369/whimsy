@@ -88,3 +88,22 @@ describe('generateWithLocalLLM — error handling', () => {
     expect(r.error).toMatch(/fetch|network|connect/i);
   });
 });
+
+describe('generateWithLocalLLM — base64 stripping', () => {
+  it('strips data:image/png;base64,... URIs from response (OAI)', async () => {
+    const html = `\`\`\`html
+<!DOCTYPE html><html><body>
+<script>this.load.image('c', 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAABmJLR0QA/wD/AP+gvaeTAAAAGXRFWHRTb2Z0d2FyZQBBZG9iZSBJbWFnZVJlYWR5ccllPAAAAAlwSFlzAAALEgAACxIB0t1+/AAAADUlEQVR42mNk+M9PfwAFfAAXD7uHwMAAAAAAElFTkSuQmCC');</script>
+</body></html>
+\`\`\``;
+    mockFetch({ choices: [{ message: { content: html } }] });
+    const r = await generateWithLocalLLM({
+      text: 'x', model: 'openai-compatible', localBaseUrl: 'http://x:1234/v1', localModel: 'm',
+    });
+    expect(r.ok).toBe(true);
+    expect(r.html).not.toContain('data:image');
+    expect(r.html).toContain("<!DOCTYPE html>");
+    // The argument slot stays (just data URI gone) so JS still parses:
+    expect(r.html).toMatch(/this\.load\.image\('c',\s*''\)/);
+  });
+});
