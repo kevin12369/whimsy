@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
 import type { Template } from '@whimsy/templates';
+import { defaultConfig } from '@whimsy/templates';
 import type { Theme } from '../lib/theme';
 
 export interface GamePreviewProps {
@@ -8,7 +9,7 @@ export interface GamePreviewProps {
 }
 
 export function GamePreview({ template, theme }: GamePreviewProps) {
-  const html = useMemo(() => template.render(theme), [template, theme]);
+  const html = useMemo(() => template.render(theme, defaultConfig()), [template, theme]);
   return (
     <iframe
       title={template.name}

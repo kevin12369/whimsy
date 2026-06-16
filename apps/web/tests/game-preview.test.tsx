@@ -9,6 +9,8 @@ const fakeTemplate: Template = {
   name: 'Test',
   howToPlay: '← → move · ↑ jump',
   defaultTheme: { primary: '#000', secondary: '#fff', playerLabel: 'p', enemyLabel: 'e', flavorText: '' },
+  consumes: [],
+  clamp: {},
   render: (theme) => `<!DOCTYPE html><html><body style="background:${theme.primary}">test ${theme.playerLabel}</body></html>`,
 };
 

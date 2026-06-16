@@ -16,8 +16,8 @@ import { FAQ } from '../components/FAQ';
 import { Roadmap } from '../components/Roadmap';
 import { Footer } from '../components/Footer';
 import { useTheme } from '../lib/theme';
-import { generateWithLocalLLM, type GenerateResult } from '../lib/llm-direct';
-import { TEMPLATES, getTemplate, getAllTemplates } from '@whimsy/templates';
+import { generateGameConfig, type GenerateResult } from '../lib/llm-direct';
+import { TEMPLATES, getTemplate, getAllTemplates, defaultConfig } from '@whimsy/templates';
 import { encodeShareUrl, saveShare, shareUrlBytes, isOversize } from '../lib/share';
 import { SAMPLE_PROMPTS, getSampleGame } from '../data/sample-prompts';
 
@@ -53,7 +53,7 @@ export default function Home() {
     [allByGenre],
   );
 
-  const previewHtml = overrideHtml ?? sampleHtml ?? current.render(theme);
+  const previewHtml = overrideHtml ?? sampleHtml ?? current.render(theme, defaultConfig());
   const previewTitle = sampleName ?? current.name;
   const previewTemplateId = sampleHtml ? currentId : currentId;
 
@@ -66,18 +66,19 @@ export default function Home() {
     setGenError(null);
     setGenResult(null);
     try {
-      const r = await generateWithLocalLLM(p);
-      setGenResult(r);
-      // Pipe the generated HTML into the GamePreview iframe (overrideHtml).
-      if (r.ok && r.html) {
-        // Strip markdown code fences the LLM wraps around the HTML.
-        const stripped = r.html.replace(/^[\s\S]*?```(?:html|HTML)?\s*\n/, '').replace(/\n```\s*$/, '').trim();
-        setOverrideHtml(stripped);
-        setSampleName(`Generated: ${p.text.slice(0, 40)}…`);
+      const r = await generateGameConfig(p);
+      if (!r.ok || !r.config) {
+        setGenError(r.error ?? 'Unknown LLM error');
+        return;
       }
-      // Try to also build a share URL for the current view
+      // Render the LLM-generated config into a 5-template HTML.
+      const tpl = getTemplate(r.config.type) ?? TEMPLATES[0]!;
+      const html = tpl.render(theme, r.config);
+      setOverrideHtml(html);
+      setSampleName(`Generated: ${p.text.slice(0, 40)}…`);
+      setGenResult({ ok: true, config: r.config, raw: r.raw });
+      // Try to also build a share URL for the generated game.
       try {
-        const html = r.ok && r.html ? r.html : current.render(theme);
         const url = encodeShareUrl(html);
         if (isOversize(url)) {
           const id = `gen-${Date.now().toString(36)}`;
@@ -146,25 +147,13 @@ export default function Home() {
 
         {/* Big preview: 70vh, fills the page */}
         <section id="demo" className="h-[70vh] w-full bg-black">
-          {overrideHtml && !overrideHtml.trim().toLowerCase().endsWith('</html>') ? (
-            <div className="w-full h-full flex flex-col items-center justify-center text-zinc-300 p-6 text-center">
-              <p className="text-amber-400 font-medium">Generated HTML appears truncated (no closing &lt;/html&gt; tag).</p>
-              <p className="text-xs text-zinc-500 mt-2">The LLM response hit its token limit before completing the game. Try a simpler prompt, or use a smaller/faster model.</p>
-              <button
-                type="button"
-                onClick={() => { setOverrideHtml(null); setGenResult(null); }}
-                className="mt-4 rounded bg-zinc-700 hover:bg-zinc-600 text-zinc-100 px-3 py-1 text-sm"
-              >Dismiss</button>
-            </div>
-          ) : (
-            <iframe
-              key={previewTemplateId + (sampleHtml ? ':sample' : ':template') + (overrideHtml ? ':override' : '')}
-              title={previewTitle}
-              srcDoc={previewHtml}
-              sandbox="allow-scripts"
-              className="w-full h-full bg-black border-0"
-            />
-          )}
+          <iframe
+            key={previewTemplateId + (sampleHtml ? ':sample' : ':template') + (overrideHtml ? ':override' : '')}
+            title={previewTitle}
+            srcDoc={previewHtml}
+            sandbox="allow-scripts"
+            className="w-full h-full bg-black border-0"
+          />
         </section>
 
         {/* Export toolbar (PR-3: Copy / Export / Edit) */}
@@ -190,7 +179,7 @@ export default function Home() {
             <InputForm onSubmit={onGenerate} disabled={genBusy} defaultExpanded />
             {genError && <p className="mt-2 text-xs text-red-300">⚠ {genError}</p>}
             {genResult?.ok && (
-              <p className="mt-2 text-xs text-emerald-300">✓ Generated {genResult.bytes} bytes. Now playing in the preview above. Use the share button to copy a URL.</p>
+              <p className="mt-2 text-xs text-emerald-300">✓ Generated. Now playing in the preview above. Use the share button to copy a URL.</p>
             )}
             <p className="mt-3 text-[10px] text-zinc-500">
               Try one of these prompts above: {SAMPLE_PROMPTS.map((s) => s.blurb).join(' · ')}

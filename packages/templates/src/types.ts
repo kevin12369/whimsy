@@ -1,4 +1,5 @@
 import type { Genre } from '@whimsy/prompt';
+import type { GameConfig } from './game-config';
 
 export interface Theme {
   primary: string;
@@ -12,7 +13,11 @@ export interface Template {
   id: string;
   genre: Exclude<Genre, 'auto'>;
   name: string;
-  howToPlay: string;          // NEW — HUD control hint, e.g. '← → move · ↑/SPACE jump · reach the flag'
+  howToPlay: string;
   defaultTheme: Theme;
-  render: (theme: Theme) => string;
+  /** Field names this template reads from GameConfig. Used for documentation. */
+  consumes: readonly (keyof GameConfig)[];
+  /** Per-field [min, max] for clamping. */
+  clamp: Partial<Record<keyof GameConfig, [number, number]>>;
+  render: (theme: Theme, gameConfig: GameConfig) => string;
 }

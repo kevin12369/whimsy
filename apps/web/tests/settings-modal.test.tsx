@@ -16,7 +16,7 @@ describe('SettingsModal', () => {
       <SettingsModal open={true} onClose={() => {}} theme={defaultTheme} onThemeChange={() => {}} />,
     );
     expect(screen.getByRole('heading', { level: 3, name: /theme/i })).toBeTruthy();
-    expect(screen.getByText(/local llm/i)).toBeTruthy();
+    expect(screen.getByRole('heading', { level: 3, name: /local llm/i })).toBeTruthy();
   });
 
   it('calls onClose when the close button is clicked', () => {

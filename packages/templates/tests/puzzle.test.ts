@@ -1,22 +1,32 @@
 import { describe, it, expect } from 'vitest';
 import { tileMatch, sokoban, PUZZLE_TEMPLATES } from '../src/puzzle';
-import { LEVEL_DATA } from '../src/level-data';
+import { defaultConfig } from '../src/game-config';
 
-const defaultTheme = { primary: '#9b59b6', secondary: '#ffffff', playerLabel: 'tile', enemyLabel: 'block', flavorText: '' };
+const theme = { primary: '#9b59b6', secondary: '#ffffff', playerLabel: 'tile', enemyLabel: 'block', flavorText: '' };
+const cfg = defaultConfig();
 
 describe('tileMatch', () => {
   it('howToPlay mentions swap', () => {
     expect(tileMatch.howToPlay).toContain('swap');
   });
-  it('renders complete HTML with board data', () => {
-    const html = tileMatch.render(defaultTheme);
+  it('declares consumed fields', () => {
+    expect(tileMatch.consumes).toEqual(
+      expect.arrayContaining(['boardSize', 'moves', 'targetScore', 'iceBlocks']),
+    );
+  });
+  it('declares clamp ranges', () => {
+    expect(tileMatch.clamp.boardSize).toEqual([6, 10]);
+    expect(tileMatch.clamp.moves).toEqual([10, 50]);
+  });
+  it('renders complete HTML', () => {
+    const html = tileMatch.render(theme, cfg);
     expect(html).toContain('phaser.min.js');
-    expect(html).toContain('8x8');
     expect(html).toContain('HOW TO PLAY');
   });
-  it('injects iceBlocks for L3', () => {
-    const html = tileMatch.render(defaultTheme);
-    expect(html).toContain(LEVEL_DATA.tileMatch[2]!.iceBlocks.toString());
+  it('inlines clamped boardSize', () => {
+    const big = { ...cfg, boardSize: 99 };
+    const html = tileMatch.render(theme, big);
+    expect(html).toMatch(/SIZE\s*=\s*10/);
   });
 });
 
@@ -24,19 +34,33 @@ describe('sokoban', () => {
   it('howToPlay mentions U for undo', () => {
     expect(sokoban.howToPlay).toContain('U');
   });
-  it('renders complete HTML with grid data', () => {
-    const html = sokoban.render(defaultTheme);
-    expect(html).toContain('5');
-    expect(html).toContain('7');
+  it('declares consumed fields', () => {
+    expect(sokoban.consumes).toEqual(
+      expect.arrayContaining(['gridSize', 'boxCount', 'movingTarget']),
+    );
   });
-  it('injects moving target flag for L3', () => {
-    const html = sokoban.render(defaultTheme);
-    expect(html).toMatch(/moving[A-Z]\w+|true/);
+  it('declares clamp ranges', () => {
+    expect(sokoban.clamp.gridSize).toEqual([5, 8]);
+    expect(sokoban.clamp.boxCount).toEqual([1, 8]);
+  });
+  it('renders complete HTML', () => {
+    const html = sokoban.render(theme, cfg);
+    expect(html).toContain('HOW TO PLAY');
+  });
+  it('inlines clamped gridSize', () => {
+    const huge = { ...cfg, gridSize: 99 };
+    const html = sokoban.render(theme, huge);
+    expect(html).toMatch(/GRID\s*=\s*8/);
+  });
+  it('uses movingTarget from config', () => {
+    const mt = { ...cfg, movingTarget: true };
+    const html = sokoban.render(theme, mt);
+    expect(html).toContain('MOVING');
   });
 });
 
 describe('PUZZLE_TEMPLATES', () => {
-  it('has 2 entries (tileMatch + sokoban)', () => {
+  it('has 2 entries', () => {
     expect(PUZZLE_TEMPLATES).toHaveLength(2);
     const ids = PUZZLE_TEMPLATES.map(t => t.id);
     expect(ids).toContain('tileMatch');

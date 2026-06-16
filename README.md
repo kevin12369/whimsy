@@ -29,7 +29,7 @@ It is not an AI game design tool. It does not invent mechanics for you, balance 
 There are two paths to a playable game:
 
 1. **Templates (no LLM, free).** Fifteen pre-baked Phaser 3 games. Five platformers, five shooters, five puzzles. They are mechanically distinct — `diversity.test.ts` enforces this with a per-template hash check, so you do not get "five platformers that all play like Mario". Click one, it runs.
-2. **Generate (LLM, optional).** Describe a game. Whimsy calls an LLM for Phaser 3 code. The output goes through a static denylist (11 dangerous APIs), a 200 KB size cap, and an iframe `sandbox="allow-scripts"` (no `allow-same-origin`). If the LLM output is broken, the retry loop feeds the error back and asks for a fix, up to two rounds. If it is still broken, you get a template instead. You always end up with something that runs.
+2. **Generate (LLM, optional).** Describe a game. Whimsy calls an LLM, which returns a small JSON config (8-15 fields: type, colors, labels, and a handful of type-specific numeric parameters). The 5 classic templates (`sideScroller` / `verticalShmup` / `twinStickBattler` / `tileMatch` / `sokoban`) read that config and render a complete Phaser 3 game in the preview iframe. The output goes through a static denylist (11 dangerous APIs), a 200 KB size cap, and an iframe `sandbox="allow-scripts"` (no `allow-same-origin`). If the LLM's response is malformed or missing fields, Whimsy falls back to a random template with safe defaults — you always end up with something that runs.
 
 The LLM is configurable. Cloudflare Workers AI (Llama 3.1 8B) is the default and has a free tier. You can also point it at DeepSeek, Gemini, Anthropic (BYOK), or any local server you have running (Ollama, LM Studio, vLLM, llama.cpp).
 

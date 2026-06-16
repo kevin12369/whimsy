@@ -1,4 +1,4 @@
-import { getTemplate } from '@whimsy/templates';
+import { getTemplate, defaultConfig } from '@whimsy/templates';
 import { defaultTheme } from '../lib/theme';
 
 export interface SamplePrompt {
@@ -46,7 +46,7 @@ export function getSampleGame(promptId: string): SampleGame | null {
   if (!sample) return null;
   const template = getTemplate(sample.templateId);
   if (!template) return null;
-  const html = template.render(defaultTheme);
+  const html = template.render(defaultTheme, defaultConfig());
   return {
     id: sample.id,
     prompt: sample.prompt,
