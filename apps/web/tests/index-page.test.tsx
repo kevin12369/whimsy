@@ -27,7 +27,7 @@ describe('Home page', () => {
     const { container } = render(<Home />);
     const iframe = container.querySelector('iframe');
     expect(iframe).toBeTruthy();
-    expect(iframe?.getAttribute('sandbox')).toBe('allow-scripts');
+    expect(iframe?.getAttribute('sandbox')).toBe('allow-scripts allow-same-origin');
   });
 
   it('renders 4 thumbnails below the big preview (5 - 1 current)', () => {
