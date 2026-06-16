@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
-import { generateWithLocalLLM } from '../lib/llm-direct';
+import { generateGameConfig } from '../lib/llm-direct';
 
 const originalFetch = globalThis.fetch;
 afterEach(() => { globalThis.fetch = originalFetch; });
@@ -13,33 +13,29 @@ function mockFetch(body: any, status = 200) {
   } as any);
 }
 
-describe('generateWithLocalLLM — Ollama', () => {
-  it('POSTs to {baseUrl}/api/generate with model + prompt', async () => {
-    mockFetch({ response: '<!DOCTYPE html><html></html>' });
-    const r = await generateWithLocalLLM({
+describe('generateGameConfig — Ollama', () => {
+  it('POSTs to {baseUrl}/api/generate', async () => {
+    mockFetch({ response: '{"type":"sideScroller","playerSpeed":220}' });
+    const r = await generateGameConfig({
       text: 'space mario',
       model: 'ollama',
       localBaseUrl: 'http://localhost:11434',
       localModel: 'llama3.1:8b',
     });
     expect(r.ok).toBe(true);
+    expect(r.config?.type).toBe('sideScroller');
+    expect(r.config?.playerSpeed).toBe(220);
     expect(globalThis.fetch).toHaveBeenCalledWith(
       'http://localhost:11434/api/generate',
       expect.objectContaining({ method: 'POST' }),
     );
   });
-
-  it('throws when model is not set', async () => {
-    await expect(
-      generateWithLocalLLM({ text: 'x' }),
-    ).rejects.toThrow(/model|baseUrl/i);
-  });
 });
 
-describe('generateWithLocalLLM — OpenAI compatible', () => {
-  it('POSTs to {baseUrl}/chat/completions with model + messages + Authorization header', async () => {
-    mockFetch({ choices: [{ message: { content: '<!DOCTYPE html>' } }] });
-    const r = await generateWithLocalLLM({
+describe('generateGameConfig — OpenAI compatible', () => {
+  it('POSTs to {baseUrl}/chat/completions with messages + Authorization header', async () => {
+    mockFetch({ choices: [{ message: { content: '{"type":"tileMatch","moves":20}' } }] });
+    const r = await generateGameConfig({
       text: 'space mario',
       model: 'openai-compatible',
       localBaseUrl: 'http://localhost:1234/v1',
@@ -47,6 +43,8 @@ describe('generateWithLocalLLM — OpenAI compatible', () => {
       localApiKey: 'lm-studio',
     });
     expect(r.ok).toBe(true);
+    expect(r.config?.type).toBe('tileMatch');
+    expect(r.config?.moves).toBe(20);
     expect(globalThis.fetch).toHaveBeenCalledWith(
       'http://localhost:1234/v1/chat/completions',
       expect.objectContaining({
@@ -55,55 +53,41 @@ describe('generateWithLocalLLM — OpenAI compatible', () => {
       }),
     );
   });
-
-  it('omits Authorization when no apiKey', async () => {
-    mockFetch({ choices: [{ message: { content: '<!DOCTYPE html>' } }] });
-    await generateWithLocalLLM({
-      text: 'x',
-      model: 'openai-compatible',
-      localBaseUrl: 'http://localhost:1234/v1',
-      localModel: 'qwen2.5-coder-7b',
-    });
-    const headers = (globalThis.fetch as any).mock.calls[0][1].headers;
-    expect(headers.Authorization).toBeUndefined();
-  });
 });
 
-describe('generateWithLocalLLM — error handling', () => {
-  it('returns ok:false on HTTP 4xx/5xx', async () => {
-    mockFetch({ error: 'model not found' }, 404);
-    const r = await generateWithLocalLLM({
-      text: 'x', model: 'ollama', localBaseUrl: 'http://localhost:11434', localModel: 'nope',
+describe('generateGameConfig — fallback on bad output', () => {
+  it('falls back to random valid type when type is missing', async () => {
+    mockFetch({ choices: [{ message: { content: '{"playerSpeed":9999}' } }] });
+    const r = await generateGameConfig({
+      text: 'x', model: 'openai-compatible', localBaseUrl: 'http://x:1234/v1', localModel: 'm',
     });
-    expect(r.ok).toBe(false);
-    expect(r.error).toMatch(/404/);
+    expect(r.ok).toBe(true);
+    expect(['sideScroller', 'verticalShmup', 'twinStickBattler', 'tileMatch', 'sokoban']).toContain(r.config?.type);
   });
 
-  it('returns ok:false on network error (fetch rejects)', async () => {
+  it('clamps playerSpeed=9999 to 400', async () => {
+    mockFetch({ choices: [{ message: { content: '{"type":"sideScroller","playerSpeed":9999}' } }] });
+    const r = await generateGameConfig({
+      text: 'x', model: 'openai-compatible', localBaseUrl: 'http://x:1234/v1', localModel: 'm',
+    });
+    expect(r.config?.playerSpeed).toBe(400);
+  });
+
+  it('returns ok:false on network error', async () => {
     globalThis.fetch = vi.fn().mockRejectedValue(new TypeError('Failed to fetch')) as any;
-    const r = await generateWithLocalLLM({
-      text: 'x', model: 'ollama', localBaseUrl: 'http://localhost:11434', localModel: 'x',
+    const r = await generateGameConfig({
+      text: 'x', model: 'ollama', localBaseUrl: 'http://x:11434', localModel: 'm',
     });
     expect(r.ok).toBe(false);
     expect(r.error).toMatch(/fetch|network|connect/i);
   });
-});
 
-describe('generateWithLocalLLM — base64 stripping', () => {
-  it('strips data:image/png;base64,... URIs from response (OAI)', async () => {
-    const html = `\`\`\`html
-<!DOCTYPE html><html><body>
-<script>this.load.image('c', 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAABmJLR0QA/wD/AP+gvaeTAAAAGXRFWHRTb2Z0d2FyZQBBZG9iZSBJbWFnZVJlYWR5ccllPAAAAAlwSFlzAAALEgAACxIB0t1+/AAAADUlEQVR42mNk+M9PfwAFfAAXD7uHwMAAAAAAElFTkSuQmCC');</script>
-</body></html>
-\`\`\``;
-    mockFetch({ choices: [{ message: { content: html } }] });
-    const r = await generateWithLocalLLM({
-      text: 'x', model: 'openai-compatible', localBaseUrl: 'http://x:1234/v1', localModel: 'm',
+  it('returns ok:false on HTTP 4xx/5xx', async () => {
+    mockFetch({ error: 'model not found' }, 404);
+    const r = await generateGameConfig({
+      text: 'x', model: 'ollama', localBaseUrl: 'http://x:11434', localModel: 'nope',
     });
-    expect(r.ok).toBe(true);
-    expect(r.html).not.toContain('data:image');
-    expect(r.html).toContain("<!DOCTYPE html>");
-    // The argument slot stays (just data URI gone) so JS still parses:
-    expect(r.html).toMatch(/this\.load\.image\('c',\s*''\)/);
+    expect(r.ok).toBe(false);
+    expect(r.error).toMatch(/404/);
   });
 });
