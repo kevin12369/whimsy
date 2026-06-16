@@ -35,7 +35,7 @@ export function LocalProviderCard() {
   const [baseUrl, setBaseUrl] = useState(readLs(KEYS.baseUrl, 'http://localhost:11434'));
   const [model, setModel] = useState(readLs(KEYS.model));
   const [apiKey, setApiKey] = useState(readLs(KEYS.apiKey));
-  const [timeoutMs, setTimeoutMs] = useState(readLs(KEYS.timeoutMs, '120000'));
+  const [timeoutMs, setTimeoutMs] = useState(readLs(KEYS.timeoutMs, '300000'));
   const [useLocal, setUseLocal] = useState(readLs('whimsy:useLocal') === 'true');
   const [status, setStatus] = useState<string>('');
   const [testing, setTesting] = useState(false);
@@ -140,8 +140,8 @@ export function LocalProviderCard() {
       <input id="local-key" type="password" value={apiKey} onChange={(e) => setApiKey(e.target.value)}
         className="rounded bg-zinc-800 border border-zinc-700 px-2 py-1" />
 
-      <label className="text-zinc-300" htmlFor="local-timeout">Timeout (ms, 1000-120000, default 120000 for big local models)</label>
-      <input id="local-timeout" type="number" min={1000} max={120000} value={timeoutMs}
+      <label className="text-zinc-300" htmlFor="local-timeout">Timeout (ms, 1000-600000, default 300000 for big local models)</label>
+      <input id="local-timeout" type="number" min={1000} max={600000} value={timeoutMs}
         onChange={(e) => setTimeoutMs(e.target.value)}
         className="rounded bg-zinc-800 border border-zinc-700 px-2 py-1" />
 
