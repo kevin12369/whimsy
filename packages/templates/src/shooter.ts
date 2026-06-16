@@ -168,8 +168,7 @@ ${renderHud({ howToPlay: 'WASD move · mouse aim · click to shoot · survive N 
   function nextRoom(scene){roomIdx++;if(roomIdx>=ROOMS){if(currentLevel>=2){saveHigh(score);document.getElementById('g').innerHTML='<div style=color:#fff;text-align:center;padding:80px;font:24px monospace>ALL LEVELS CLEARED<br><br>Score: '+score+'<br>High: '+loadHigh()+'<br><br><a style=color:#ff6b3a href=javascript:location.reload()>Play again</a></div>';return}currentLevel++;roomIdx=0;score+=150;scene.game.destroy(true);newGame()}else{spawnRoom(scene)}}
   function isRoomCleared(){return enemies.countActive()===0}
 
-  new Phaser.Game({type:Phaser.AUTO,parent:'g',width:800,height:480,scene:{create(){this.add.rectangle(400,240,800,480,0x0a0202);this.add.text(300,230,'Loading…',{fontSize:'20px',fill:'#fff'})}}});
-  setTimeout(()=>{document.getElementById('g').innerHTML='<div id="g"></div>';newGame()},100);
+  newGame();
 
   window.addEventListener('keydown',function(e){if(e.key==='r'||e.key==='R')location.reload()});
 })();
