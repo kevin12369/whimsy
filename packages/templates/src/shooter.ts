@@ -35,7 +35,7 @@ ${renderHud({ howToPlay: '← → move · SPACE shoot · dodge bullets', current
   const SCROLL_SPEED=${scrollSpeed}, ENEMY_FIRE_RATE=${enemyFireRate}, ENEMY_ROWS=${enemyRows}, LIVES=${lives};
   const LEVELS=${JSON.stringify(LEVEL_DATA.verticalShmup)};
   const BOSS=${JSON.stringify(BOSS_DATA.verticalShmup)};
-  let score=0, lives=LIVES, currentLevel=0, gameOver=false, bossActive=false, bossPhase=0, bossHp=BOSS.hp;
+  let score=0, lives=LIVES, currentLevel=0, gameOver=false, bossActive=false, bossPhase=0, bossHp=BOSS.hp, invincibleUntil=0;
   let player, cursors, bullets, enemies, enemyBullets, boss, lastFire=0, lastEnemyFire=0, phaseTimer=0;
 
   function loadHigh(){try{return JSON.parse(localStorage.getItem(SCORE_KEY)||'{"high":0}').high}catch(e){return 0}}
@@ -55,6 +55,7 @@ ${renderHud({ howToPlay: '← → move · SPACE shoot · dodge bullets', current
           const baseCount=8;
           for(let r=0;r<ENEMY_ROWS;r++){for(let i=0;i<baseCount;i++){const e=this.add.rectangle(50+i*45,50+r*45,20,20,ENEMY_COLOR);this.physics.add.existing(e);enemies.add(e);e.body.setVelocity(0,80*SCROLL_SPEED)}}
           if(currentLevel===2)spawnBoss(this);
+          invincibleUntil=Date.now()+1500;
           this.input.keyboard.on('keydown-SPACE',()=>{if(gameOver)return;const now=Date.now();if(now-lastFire<200)return;lastFire=now;const b=this.add.rectangle(player.x,player.y-12,4,8,0xffffff);this.physics.add.existing(b);bullets.add(b);b.body.setVelocity(0,-500)});
           updateHud();
         },
@@ -69,8 +70,8 @@ ${renderHud({ howToPlay: '← → move · SPACE shoot · dodge bullets', current
             for(const e of enemies.getChildren()){if(Math.random()<0.3){const b=this.add.rectangle(e.x,e.y+12,4,8,0xff6666);this.physics.add.existing(b);enemyBullets.add(b);b.body.setVelocity(0,180)}}
           }
           this.physics.overlap(bullets,enemies,(b,e)=>{b.destroy();e.destroy();score+=20;updateHud()});
-          this.physics.overlap(player,enemyBullets,()=>{hit(this)});
-          this.physics.overlap(player,enemies,()=>{hit(this)});
+          this.physics.overlap(player,enemyBullets,()=>{if(Date.now()<invincibleUntil)return;hit(this)});
+          this.physics.overlap(player,enemies,()=>{if(Date.now()<invincibleUntil)return;hit(this)});
           if(boss){
             phaseTimer+=d;
             if(phaseTimer>3000){phaseTimer=0;bossPhase=(bossPhase+1)%3}
@@ -121,7 +122,7 @@ ${renderHud({ howToPlay: 'WASD move · mouse aim · click to shoot · survive N 
   const ROOMS=${rooms}, ENEMIES_PER_ROOM=${enemiesPerRoom}, ENEMY_FIRE_MS=${enemyFireMs};
   const LEVELS=${JSON.stringify(LEVEL_DATA.twinStickBattler)};
   const BOSS=${JSON.stringify(BOSS_DATA.twinStickBattler)};
-  let score=0, currentLevel=0, roomIdx=0, gameOver=false, bossActive=false;
+  let score=0, currentLevel=0, roomIdx=0, gameOver=false, bossActive=false, invincibleUntil=0;
   let player, enemies, enemyBullets, bullets, keyW, keyA, keyS, keyD, boss;
 
   function loadHigh(){try{return JSON.parse(localStorage.getItem(SCORE_KEY)||'{"high":0}').high}catch(e){return 0}}
@@ -139,9 +140,10 @@ ${renderHud({ howToPlay: 'WASD move · mouse aim · click to shoot · survive N 
           this.input.on('pointerdown',(p)=>{const b=this.add.rectangle(player.x,player.y,4,8,0xffff66);this.physics.add.existing(b);bullets.add(b);const dx=p.x-player.x,dy=p.y-player.y;const m=Math.sqrt(dx*dx+dy*dy)||1;b.body.setVelocity(dx/m*400,dy/m*400)});
           spawnRoom(this);
           if(currentLevel===2&&roomIdx===ROOMS-1)spawnBoss(this);
+          invincibleUntil=Date.now()+1500;
           this.physics.overlap(bullets,enemies,(b,e)=>{b.destroy();e.destroy();score+=20;updateHud()});
-          this.physics.overlap(player,enemies,()=>die(this));
-          this.physics.overlap(player,enemyBullets,()=>die(this));
+          this.physics.overlap(player,enemies,()=>{if(Date.now()<invincibleUntil)return;die(this)});
+          this.physics.overlap(player,enemyBullets,()=>{if(Date.now()<invincibleUntil)return;die(this)});
           if(boss){this.physics.overlap(bullets,boss,(b)=>{b.destroy();boss.hp--;score+=50;updateHud();if(boss.hp<=0){boss.destroy();boss=null;score+=500;updateHud();setTimeout(()=>nextRoom(this),500)}});this.physics.overlap(player,boss,()=>die(this))}
           updateHud();
         },

@@ -38,7 +38,7 @@ ${renderHud({ howToPlay: '← → move · ↑/SPACE jump · reach the flag', cur
   const ENEMY_COUNT=${enemyCount}, ENEMY_SPEED=${enemySpeed}, SPAWN_INTERVAL=${spawnInterval}, LIVES=${lives};
   const LEVELS=${JSON.stringify(LEVEL_DATA.sideScrollerComet)};
   const BOSS=${JSON.stringify(BOSS_DATA.sideScrollerComet)};
-  let score=0, lives=LIVES, gameOver=false, currentLevel=0, bossActive=false, bossHp=BOSS.hp;
+  let score=0, lives=LIVES, gameOver=false, currentLevel=0, bossActive=false, bossHp=BOSS.hp, invincibleUntil=0;
   let player, cursors, ground, platforms, enemies, stars, goal, scoreText, livesText, boss;
 
   function loadHigh(){try{return JSON.parse(localStorage.getItem(SCORE_KEY)||'{"high":0}').high}catch(e){return 0}}
@@ -73,10 +73,11 @@ ${renderHud({ howToPlay: '← → move · ↑/SPACE jump · reach the flag', cur
           this.physics.add.existing(goal,true);
           cursors=this.input.keyboard.createCursorKeys();
           this.physics.add.overlap(player,stars,(p,s)=>{s.destroy();score+=10;updateHud()});
-          this.physics.add.overlap(player,enemies,()=>{if(player.body.touching.down)return;hit()});
+          this.physics.add.overlap(player,enemies,()=>{if(Date.now()<invincibleUntil||player.body.touching.down)return;hit()});
           this.physics.add.overlap(player,goal,()=>{nextLevel(this)});
           if(currentLevel===2){bossActive=true;boss=this.add.rectangle(BOSS.x,BOSS.y,BOSS.w,BOSS.h,0xaa00aa);this.physics.add.existing(boss);boss.hp=BOSS.hp;this.tweens.add({targets:boss,x:100,duration:2000/BOSS.speed*1000,yoyo:true,repeat:-1})}
-          this.physics.add.overlap(player,boss,()=>{if(!boss)return;if(player.body.touching.down&&player.body.velocity.y>200){boss.hp--;player.body.setVelocityY(-JUMP_VELOCITY*0.9);if(boss.hp<=0){boss.destroy();boss=null;score+=200;updateHud();setTimeout(()=>nextLevel(this),500)}else{score+=50;updateHud()}}else hit()});
+          invincibleUntil=Date.now()+1500;
+          this.physics.add.overlap(player,boss,()=>{if(!boss||Date.now()<invincibleUntil)return;if(player.body.touching.down&&player.body.velocity.y>200){boss.hp--;player.body.setVelocityY(-JUMP_VELOCITY*0.9);if(boss.hp<=0){boss.destroy();boss=null;score+=200;updateHud();setTimeout(()=>nextLevel(this),500)}else{score+=50;updateHud()}}else hit()});
           updateHud();
         },
         update(){
