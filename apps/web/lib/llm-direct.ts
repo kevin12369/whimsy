@@ -1,21 +1,20 @@
-export interface GenerateInput {
-  text: string;
-  model?: 'ollama' | 'openai-compatible';
-  localBaseUrl?: string;
-  localModel?: string;
-  localApiKey?: string;
-  localTimeoutMs?: number;
-}
+import type { GameConfig } from '@whimsy/templates';
 
 export interface GenerateResult {
   ok: boolean;
-  html?: string;
-  bytes?: number;
+  config?: GameConfig;
+  raw?: string;
   error?: string;
 }
 
-const SYSTEM_PROMPT =
-  'You are a Phaser 3 game generator. Output a single complete HTML file with Phaser loaded from https://cdn.jsdelivr.net/npm/phaser@3.70.0/dist/phaser.min.js. The HTML must be self-contained, under 200KB, with no fetch/XMLHttpRequest/eval/localStorage/window.parent calls. Do not include explanations, just the HTML. Do not use base64-encoded image data URIs — draw visuals with Phaser.GameObjects.Rectangle, Graphics, or Text instead. Keep total output well under 4000 tokens so the response finishes within 60 seconds on a 14B model. CRITICAL: the response MUST end with closing </script></body></html> — a truncated HTML file will not run. Prefer a smaller, complete game over a larger, incomplete one.';
+const SYSTEM_PROMPT = `You are a game configuration generator. Output a single JSON object with these fields:
+- type (REQUIRED): one of "sideScroller", "verticalShmup", "twinStickBattler", "tileMatch", "sokoban"
+- primary, secondary, enemyColor: hex colors like "#3aa6ff"
+- playerLabel, enemyLabel: short names like "comet", "asteroid"
+- type-specific numeric fields (playerSpeed, jumpVelocity, scrollSpeed, boardSize, gridSize, etc.)
+
+Output ONLY the JSON object, no markdown, no explanations, no code fences. Example:
+{"type":"sideScroller","primary":"#3aa6ff","secondary":"#ffffff","enemyColor":"#ff4444","playerLabel":"comet","enemyLabel":"asteroid","playerSpeed":220,"jumpVelocity":460,"gravity":900,"enemyCount":5,"lives":3}`;
 
 function validateBaseUrl(url: string | undefined): string {
   if (!url) throw new Error('localBaseUrl is required');
@@ -27,11 +26,20 @@ function validateBaseUrl(url: string | undefined): string {
   return url.replace(/\/$/, '');
 }
 
-async function callOllama(input: Required<Pick<GenerateInput, 'text' | 'localBaseUrl' | 'localModel' | 'localTimeoutMs'>>): Promise<{ text: string }> {
+export interface GenerateInput {
+  text: string;
+  model?: 'ollama' | 'openai-compatible';
+  localBaseUrl?: string;
+  localModel?: string;
+  localApiKey?: string;
+  localTimeoutMs?: number;
+}
+
+async function callOllama(input: Required<Pick<GenerateInput, 'text' | 'localBaseUrl' | 'localModel' | 'localTimeoutMs'>>): Promise<string> {
   const url = `${validateBaseUrl(input.localBaseUrl)}/api/generate`;
   const body = {
     model: input.localModel,
-    prompt: `${SYSTEM_PROMPT}\n\n${input.text}`,
+    prompt: `${SYSTEM_PROMPT}\n\nUser prompt: ${input.text}`,
     stream: false,
     options: { temperature: 0.4, num_predict: -1 },
   };
@@ -49,15 +57,13 @@ async function callOllama(input: Required<Pick<GenerateInput, 'text' | 'localBas
       throw new Error(`Ollama ${res.status}: ${text}`);
     }
     const json = (await res.json()) as { response?: string };
-    const raw = json.response ?? '';
-    const text = raw.replace(/^[\s\S]*?```(?:html|HTML)?\s*\n/, '').replace(/\n```\s*$/, '').trim() || raw.trim();
-    return { text };
+    return json.response ?? '';
   } finally {
     clearTimeout(timer);
   }
 }
 
-async function callOpenAiCompatible(input: Required<Pick<GenerateInput, 'text' | 'localBaseUrl' | 'localModel' | 'localTimeoutMs'>> & { localApiKey?: string }): Promise<{ text: string }> {
+async function callOpenAiCompatible(input: Required<Pick<GenerateInput, 'text' | 'localBaseUrl' | 'localModel' | 'localTimeoutMs'>> & { localApiKey?: string }): Promise<string> {
   const url = `${validateBaseUrl(input.localBaseUrl)}/chat/completions`;
   const body = {
     model: input.localModel,
@@ -81,45 +87,78 @@ async function callOpenAiCompatible(input: Required<Pick<GenerateInput, 'text' |
       throw new Error(`OAI-compatible ${res.status}: ${text}`);
     }
     const json = (await res.json()) as { choices?: { message?: { content?: string } }[] };
-    const raw = json.choices?.[0]?.message?.content ?? '';
-    let text = raw.replace(/^[\s\S]*?```(?:html|HTML)?\s*\n/, '').replace(/\n```\s*$/, '').trim() || raw.trim();
-    // Strip data: URIs in load.image / load.sprite / src= attributes.
-    // Phaser 3 inside an iframe sandbox cannot load data URIs (it logs
-    // 'Local data URIs are not supported' and falls back to a 32x32
-    // magenta square). Strip them so scene code falls back to Graphics.
-    text = text.replace(/(['"]\s*)data:image\/[a-zA-Z0-9+.\-/]+;base64,[A-Za-z0-9+/=\s]+(['"])/g, '$1$2');
-    return { text };
+    return json.choices?.[0]?.message?.content ?? '';
   } finally {
     clearTimeout(timer);
   }
 }
 
-export async function generateWithLocalLLM(input: GenerateInput): Promise<GenerateResult> {
-  if (!input.model) throw new Error('model is required (set in Settings → Local LLM)');
-  if (!input.localBaseUrl) throw new Error('localBaseUrl is required (set in Settings → Local LLM)');
-  if (!input.localModel) throw new Error('localModel is required (set in Settings → Local LLM)');
+export async function generateGameConfig(input: GenerateInput): Promise<GenerateResult> {
+  if (!input.model) return { ok: false, error: 'model is required (set in Settings → Local LLM)' };
+  if (!input.localBaseUrl) return { ok: false, error: 'localBaseUrl is required (set in Settings → Local LLM)' };
+  if (!input.localModel) return { ok: false, error: 'localModel is required (set in Settings → Local LLM)' };
 
-  const normalized = {
-    text: input.text,
-    localBaseUrl: input.localBaseUrl,
-    localModel: input.localModel,
-    localTimeoutMs: input.localTimeoutMs ?? 30000,
-    localApiKey: input.localApiKey,
-  };
-
+  const timeoutMs = input.localTimeoutMs ?? 300000;
+  const fn = input.model === 'ollama' ? callOllama : callOpenAiCompatible;
   try {
-    const r = input.model === 'ollama'
-      ? await callOllama(normalized)
-      : await callOpenAiCompatible(normalized);
-    if (!r.text) {
-      return { ok: false, error: 'LLM returned empty response' };
-    }
-    return { ok: true, html: r.text, bytes: r.text.length };
+    const raw = await fn({
+      text: input.text,
+      localBaseUrl: input.localBaseUrl,
+      localModel: input.localModel,
+      localTimeoutMs: timeoutMs,
+      ...(input.localApiKey ? { localApiKey: input.localApiKey } : {}),
+    });
+    return { ok: true, config: parseConfigClient(raw), raw };
   } catch (e) {
-    const msg = (e as Error).message;
-    if (msg.includes('Failed to fetch') || msg.includes('NetworkError')) {
-      return { ok: false, error: `Network error — is ${input.model} running at ${input.localBaseUrl}?` };
-    }
-    return { ok: false, error: msg };
+    return { ok: false, error: (e as Error).message };
   }
+}
+
+// Lazy import to avoid circular dependency with templates package at module-load time.
+function parseConfigClient(raw: string): GameConfig {
+  // Strip markdown fence if present.
+  const stripped = raw
+    .replace(/^[\s\S]*?```(?:json|JSON)?\s*\n/, '')
+    .replace(/\n```\s*$/, '')
+    .trim();
+  const m = stripped.match(/\{[\s\S]*\}/);
+  let parsed: any = {};
+  if (m) {
+    try { parsed = JSON.parse(m[0]); } catch { parsed = {}; }
+  }
+  const VALID_TYPES = ['sideScroller', 'verticalShmup', 'twinStickBattler', 'tileMatch', 'sokoban'] as const;
+  const type = VALID_TYPES.includes(parsed.type) ? parsed.type : VALID_TYPES[Math.floor(Math.random() * VALID_TYPES.length)]!;
+  const isHex = (s: unknown) => typeof s === 'string' && /^#[0-9a-fA-F]{6}$/.test(s);
+  const clamp = (v: any, lo: number, hi: number, fallback: number): number => {
+    if (typeof v !== 'number' || !Number.isFinite(v)) return fallback;
+    return Math.max(lo, Math.min(hi, Math.round(v)));
+  };
+  return {
+    type,
+    primary: isHex(parsed.primary) ? parsed.primary : '#3aa6ff',
+    secondary: isHex(parsed.secondary) ? parsed.secondary : '#ffffff',
+    enemyColor: isHex(parsed.enemyColor) ? parsed.enemyColor : '#ff4444',
+    playerLabel: typeof parsed.playerLabel === 'string' ? parsed.playerLabel.slice(0, 32) : 'hero',
+    enemyLabel: typeof parsed.enemyLabel === 'string' ? parsed.enemyLabel.slice(0, 32) : 'enemy',
+    playerSpeed: clamp(parsed.playerSpeed, 50, 400, 220),
+    jumpVelocity: clamp(parsed.jumpVelocity, 200, 600, 460),
+    gravity: clamp(parsed.gravity, 400, 1200, 900),
+    enemyCount: clamp(parsed.enemyCount, 1, 15, 5),
+    enemySpeed: clamp(parsed.enemySpeed, 50, 300, 200),
+    spawnIntervalMs: clamp(parsed.spawnIntervalMs, 500, 3000, 1400),
+    scrollSpeed: clamp(parsed.scrollSpeed, 1, 3, 1.5),
+    enemyFireRateMs: clamp(parsed.enemyFireRateMs, 0, 3000, 1500),
+    enemyRows: clamp(parsed.enemyRows, 1, 5, 3),
+    roomCount: clamp(parsed.roomCount, 1, 8, 4),
+    enemiesPerRoom: clamp(parsed.enemiesPerRoom, 2, 10, 5),
+    enemyFireMs: clamp(parsed.enemyFireMs, 0, 3000, 1500),
+    boardSize: clamp(parsed.boardSize, 6, 10, 8),
+    moves: clamp(parsed.moves, 10, 50, 20),
+    targetScore: clamp(parsed.targetScore, 500, 5000, 1500),
+    iceBlocks: clamp(parsed.iceBlocks, 0, 10, 0),
+    gridSize: clamp(parsed.gridSize, 5, 8, 6),
+    boxCount: clamp(parsed.boxCount, 1, 8, 3),
+    movingTarget: Boolean(parsed.movingTarget),
+    lives: clamp(parsed.lives, 1, 9, 3),
+  } as GameConfig;
 }
