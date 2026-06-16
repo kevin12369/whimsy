@@ -82,8 +82,12 @@ async function callOpenAiCompatible(input: Required<Pick<GenerateInput, 'text' |
     }
     const json = (await res.json()) as { choices?: { message?: { content?: string } }[] };
     const raw = json.choices?.[0]?.message?.content ?? '';
-    // Strip markdown code fences the LLM wraps around the HTML.
-    const text = raw.replace(/^[\s\S]*?```(?:html|HTML)?\s*\n/, '').replace(/\n```\s*$/, '').trim() || raw.trim();
+    let text = raw.replace(/^[\s\S]*?```(?:html|HTML)?\s*\n/, '').replace(/\n```\s*$/, '').trim() || raw.trim();
+    // Strip data: URIs in load.image / load.sprite / src= attributes.
+    // Phaser 3 inside an iframe sandbox cannot load data URIs (it logs
+    // 'Local data URIs are not supported' and falls back to a 32x32
+    // magenta square). Strip them so scene code falls back to Graphics.
+    text = text.replace(/(['"]\s*)data:image\/[a-zA-Z0-9+.\-/]+;base64,[A-Za-z0-9+/=\s]+(['"])/g, '$1$2');
     return { text };
   } finally {
     clearTimeout(timer);
