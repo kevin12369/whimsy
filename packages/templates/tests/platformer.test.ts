@@ -1,35 +1,47 @@
 import { describe, it, expect } from 'vitest';
 import { sideScrollerComet, PLATFORMER_TEMPLATES } from '../src/platformer';
-import { LEVEL_DATA, BOSS_DATA } from '../src/level-data';
+import { defaultConfig } from '../src/game-config';
 
-const defaultTheme = {
+const theme = {
   primary: '#3aa6ff', secondary: '#ffffff', playerLabel: 'comet', enemyLabel: 'asteroid', flavorText: '',
 };
+const cfg = defaultConfig();
 
 describe('sideScrollerComet', () => {
   it('exists with howToPlay', () => {
     expect(sideScrollerComet.id).toBe('sideScrollerComet');
-    expect(sideScrollerComet.genre).toBe('platformer');
     expect(sideScrollerComet.howToPlay).toContain('←');
   });
 
+  it('declares consumed config fields', () => {
+    expect(sideScrollerComet.consumes).toEqual(
+      expect.arrayContaining(['playerSpeed', 'jumpVelocity', 'gravity', 'enemyCount', 'enemySpeed', 'spawnIntervalMs', 'lives']),
+    );
+  });
+
+  it('declares clamp ranges', () => {
+    expect(sideScrollerComet.clamp.playerSpeed).toEqual([50, 400]);
+    expect(sideScrollerComet.clamp.jumpVelocity).toEqual([200, 600]);
+    expect(sideScrollerComet.clamp.lives).toEqual([1, 9]);
+  });
+
   it('renders complete HTML', () => {
-    const html = sideScrollerComet.render(defaultTheme);
+    const html = sideScrollerComet.render(theme, cfg);
     expect(html).toContain('<!DOCTYPE html>');
     expect(html).toContain('phaser.min.js');
     expect(html).toContain('HOW TO PLAY');
   });
 
-  it('injects all 3 level data as JSON', () => {
-    const html = sideScrollerComet.render(defaultTheme);
-    expect(html).toContain(JSON.stringify(LEVEL_DATA.sideScrollerComet[0]).slice(0, 20));
-    expect(html).toContain(JSON.stringify(LEVEL_DATA.sideScrollerComet[2]).slice(0, 20));
+  it('inlines the clamped playerSpeed into Phaser JS', () => {
+    const fast = { ...cfg, playerSpeed: 9999 };
+    const html = sideScrollerComet.render(theme, fast);
+    // playerSpeed is clamped to 400; expect "400" somewhere in the IIFE
+    expect(html).toMatch(/PLAYER_SPEED\s*=\s*400/);
   });
 
-  it('injects boss data', () => {
-    const html = sideScrollerComet.render(defaultTheme);
-    expect(html).toContain('charge');
-    expect(html).toContain(BOSS_DATA.sideScrollerComet.hp.toString());
+  it('uses playerLabel as Phaser body key', () => {
+    const html = sideScrollerComet.render({ ...theme, playerLabel: 'ship' }, cfg);
+    expect(html).toContain("'ship'");
   });
 
   it('PLATFORMER_TEMPLATES contains only sideScrollerComet', () => {
