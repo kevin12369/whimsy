@@ -17,7 +17,9 @@ test('v3 landing page: hero loads, download CTA present, no iframe demo', async 
   });
 
   await page.goto('/');
-  await expect(page.locator('h1')).toContainText('Whimsy');
+  // Hero headline is the h1; the brand name lives in a <span data-testid="brand-name">.
+  await expect(page.locator('h1').first()).toBeVisible();
+  await expect(page.getByTestId('brand-name')).toContainText('Whimsy');
 
   // 2. v3 pivot: there is no iframe demo anymore (Tauri desktop handles gameplay).
   await expect(page.locator('iframe')).toHaveCount(0);
