@@ -20,8 +20,9 @@ describe('tileMatch', () => {
   });
   it('renders complete HTML', () => {
     const html = tileMatch.render(theme, cfg);
-    expect(html).toContain('phaser.min.js');
+    expect(html).toContain('window.__WHIMSY_G__');
     expect(html).toContain('HOW TO PLAY');
+    expect(html).toContain('__whimsy_cleanup');
   });
   it('inlines clamped boardSize', () => {
     const big = { ...cfg, boardSize: 99 };
