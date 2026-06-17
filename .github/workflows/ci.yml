@@ -88,7 +88,8 @@ jobs:
           SERVER_PID=$!
           sleep 2
           # 4173/static export is what GitHub Pages serves in production.
-          PLAYWRIGHT_BASE_URL=http://localhost:4173/whimsy/ pnpm exec playwright test --reporter=list || EXIT=$?
+          PLAYWRIGHT_BASE_URL=http://localhost:4173/whimsy/ \
+            pnpm exec playwright test --config e2e/playwright.config.ts --reporter=list || EXIT=$?
           kill $SERVER_PID 2>/dev/null || true
           exit ${EXIT:-0}
       - name: Upload Playwright artifacts
