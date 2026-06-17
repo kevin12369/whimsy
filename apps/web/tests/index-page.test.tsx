@@ -23,14 +23,18 @@ describe('Home page', () => {
     expect(h1s.length).toBe(1);
   });
 
-  it('renders a big preview iframe (default first template)', () => {
+  it('renders the v3 static showcase CTA (Download Whimsy) — no iframe demo', () => {
+    // v3 pivot: Whimsy moved to a Tauri desktop app, so the GitHub Pages
+    // landing is a static showcase with a download CTA, not an iframe demo.
     const { container } = render(<Home />);
-    const iframe = container.querySelector('iframe');
-    expect(iframe).toBeTruthy();
-    expect(iframe?.getAttribute('sandbox')).toBe('allow-scripts allow-same-origin');
+    expect(container.querySelector('iframe')).toBeNull();
+    const cta = screen.getByRole('link', { name: /download whimsy/i });
+    expect(cta.getAttribute('href')).toMatch(/releases/);
+    // Showcase headline
+    expect(screen.getByRole('heading', { name: /now a desktop app/i })).toBeTruthy();
   });
 
-  it('renders 4 thumbnails below the big preview (5 - 1 current)', () => {
+  it('renders 4 thumbnails below the showcase (5 - 1 current)', () => {
     render(<Home />);
     const buttons = screen.getAllByRole('button');
     // 4 thumbnails + settings + generator toggle = 6 buttons minimum
