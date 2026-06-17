@@ -7,7 +7,7 @@ jobs:
     steps:
       - uses: actions/checkout@v5
       - uses: pnpm/action-setup@v4
-      - uses: actions/setup-node@v5
+      - uses: actions/setup-node@v6
         with: { node-version: 20, cache: 'pnpm' }
       - run: pnpm install --frozen-lockfile
       - name: Verify lockfile is committed (no drift)
@@ -24,7 +24,7 @@ jobs:
     steps:
       - uses: actions/checkout@v5
       - uses: pnpm/action-setup@v4
-      - uses: actions/setup-node@v5
+      - uses: actions/setup-node@v6
         with: { node-version: 20, cache: 'pnpm' }
       - run: pnpm install --frozen-lockfile
       - run: pnpm -r exec tsc --noEmit
@@ -74,7 +74,7 @@ jobs:
     steps:
       - uses: actions/checkout@v5
       - uses: pnpm/action-setup@v4
-      - uses: actions/setup-node@v5
+      - uses: actions/setup-node@v6
         with: { node-version: 20, cache: 'pnpm' }
       - run: pnpm install --frozen-lockfile
       - name: Install Playwright browsers
