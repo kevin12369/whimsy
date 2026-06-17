@@ -22,8 +22,9 @@ describe('verticalShmup', () => {
   });
   it('renders complete HTML with config defaults', () => {
     const html = verticalShmup.render(theme, cfg);
-    expect(html).toContain('phaser.min.js');
+    expect(html).toContain('window.__WHIMSY_G__');
     expect(html).toContain('HOW TO PLAY');
+    expect(html).toContain('__whimsy_cleanup');
     // 8 default enemies (since enemyRows default = 3, but we render 8 fixed in IIFE; check SCROLL_SPEED constant)
     expect(html).toMatch(/SCROLL_SPEED\s*=\s*1\.5/);
   });

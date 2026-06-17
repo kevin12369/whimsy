@@ -29,7 +29,6 @@ ${hudStyles}
 <script>window.addEventListener('error',function(e){document.body.insertAdjacentHTML('beforeend','<pre style=color:red>'+e.message+'</pre>')});</script>
 ${renderHud({ howToPlay: '← → move · ↑/SPACE jump · reach the flag', currentLevel: 1, totalLevels: 3, highScore: 0, score: 0 })}
 <div id="g"></div>
-<script src="https://cdn.jsdelivr.net/npm/phaser@3.70.0/dist/phaser.min.js"></script>
 <script>
 (function(){
   const COLOR=${primary}, WHITE=${w}, PLAYER='${theme.playerLabel}', ENEMY='${theme.enemyLabel}';
@@ -38,8 +37,13 @@ ${renderHud({ howToPlay: '← → move · ↑/SPACE jump · reach the flag', cur
   const ENEMY_COUNT=${enemyCount}, ENEMY_SPEED=${enemySpeed}, SPAWN_INTERVAL=${spawnInterval}, LIVES=${lives};
   const LEVELS=${JSON.stringify(LEVEL_DATA.sideScrollerComet)};
   const BOSS=${JSON.stringify(BOSS_DATA.sideScrollerComet)};
+  if (typeof Phaser === 'undefined') {
+    const g = document.getElementById('g') || document.body;
+    g.innerHTML = '<div style="color:#fff;padding:40px;font:14px monospace">Phaser failed to load. Check the network/CDN.</div>';
+    return;
+  }
   let score=0, lives=LIVES, gameOver=false, currentLevel=0, bossActive=false, bossHp=BOSS.hp, invincibleUntil=0;
-  let player, cursors, ground, platforms, enemies, stars, goal, scoreText, livesText, boss;
+  let player, cursors, ground, platforms, enemies, stars, goal, scoreText, livesText, boss, game;
 
   function loadHigh(){try{return JSON.parse(localStorage.getItem(SCORE_KEY)||'{"high":0}').high}catch(e){return 0}}
   function saveHigh(s){try{localStorage.setItem(SCORE_KEY,JSON.stringify({high:Math.max(s,loadHigh())}))}catch(e){}}
@@ -49,7 +53,7 @@ ${renderHud({ howToPlay: '← → move · ↑/SPACE jump · reach the flag', cur
   }
 
   function newGame(){
-    new Phaser.Game({type:Phaser.AUTO,parent:'g',width:800,height:480,
+    game = new Phaser.Game({type:Phaser.AUTO,parent:window.__WHIMSY_G__,width:800,height:480,
       physics:{default:'arcade',arcade:{gravity:{y:GRAVITY}}},
       scene:{
         create(){
@@ -102,8 +106,13 @@ ${renderHud({ howToPlay: '← → move · ↑/SPACE jump · reach the flag', cur
     currentLevel++;score+=100;updateHud();scene.game.destroy(true);newGame();
   }
 
-  window.addEventListener('keydown',function(e){if(e.key==='r'||e.key==='R')location.reload()});
+  const restartHandler = function(e){if(e.key==='r'||e.key==='R')location.reload()};
+  window.addEventListener('keydown', restartHandler);
   newGame();
+  window.__whimsy_cleanup = function() {
+    try { game.destroy(true); } catch (e) {}
+    document.removeEventListener('keydown', restartHandler);
+  };
 })();
 </script></body></html>`;
 }

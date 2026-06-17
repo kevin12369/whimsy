@@ -28,7 +28,6 @@ ${hudStyles}
 </head><body>
 ${renderHud({ howToPlay: 'click 2 adjacent tiles to swap · match 3+ same color', currentLevel: 1, totalLevels: 3, highScore: 0, score: 0 })}
 <div id="g"></div>
-<script src="https://cdn.jsdelivr.net/npm/phaser@3.70.0/dist/phaser.min.js"></script>
 <script>
 (function(){
   const COLOR=${c1}, PLAYER='${theme.playerLabel}', ENEMY='${theme.enemyLabel}';
@@ -36,8 +35,13 @@ ${renderHud({ howToPlay: 'click 2 adjacent tiles to swap · match 3+ same color'
   const LEVELS=${JSON.stringify(LEVEL_DATA.tileMatch)};
   const COLORS=${JSON.stringify(COLORS)};
   const SIZE=${boardSize}, TILE=${TILE}, TARGET=${targetScore}, ICE=${iceBlocks}, MOVES=${moves};
+  if (typeof Phaser === 'undefined') {
+    const g = document.getElementById('g') || document.body;
+    g.innerHTML = '<div style="color:#fff;padding:40px;font:14px monospace">Phaser failed to load. Check the network/CDN.</div>';
+    return;
+  }
   let currentLevel=0, score=0, movesLeft, board, selected, icePositions, gameOver=false;
-  let boardG, scoreT, movesT, levelT;
+  let boardG, scoreT, movesT, levelT, game;
 
   function loadHigh(){try{return JSON.parse(localStorage.getItem(SCORE_KEY)||'{"high":0}').high}catch(e){return 0}}
   function saveHigh(s){try{localStorage.setItem(SCORE_KEY,JSON.stringify({high:Math.max(s,loadHigh())}))}catch(e){}}
@@ -48,7 +52,7 @@ ${renderHud({ howToPlay: 'click 2 adjacent tiles to swap · match 3+ same color'
     board=Array(SIZE).fill().map(()=>Array(SIZE).fill(0).map(()=>Math.floor(Math.random()*6)));
     selected=null;icePositions=new Set();
     if(ICE>0)for(let i=0;i<ICE;i++){icePositions.add(Math.floor(Math.random()*SIZE)+','+Math.floor(Math.random()*SIZE))}
-    new Phaser.Game({type:Phaser.AUTO,parent:'g',width:SIZE*TILE+30,height:SIZE*TILE+60,
+    game = new Phaser.Game({type:Phaser.AUTO,parent:window.__WHIMSY_G__,width:SIZE*TILE+30,height:SIZE*TILE+60,
       scene:{
         create(){
           this.add.rectangle((SIZE*TILE+30)/2,(SIZE*TILE+60)/2,SIZE*TILE+30,SIZE*TILE+60,0x0a0010);
@@ -87,6 +91,9 @@ ${renderHud({ howToPlay: 'click 2 adjacent tiles to swap · match 3+ same color'
   function dropTiles(){for(let x=0;x<SIZE;x++){const col=[];for(let y=0;y<SIZE;y++)if(board[y][x]!==null)col.push(board[y][x]);while(col.length<SIZE)col.unshift(Math.floor(Math.random()*6));for(let y=0;y<SIZE;y++)board[y][x]=col[y]}}
 
   newGame();
+  window.__whimsy_cleanup = function() {
+    try { game.destroy(true); } catch (e) {}
+  };
 })();
 </script></body></html>`;
 }
@@ -105,14 +112,18 @@ ${hudStyles}
 </head><body>
 ${renderHud({ howToPlay: 'arrow keys push boxes onto targets · undo with U', currentLevel: 1, totalLevels: 3, highScore: 0, score: 0 })}
 <div id="g"></div>
-<script src="https://cdn.jsdelivr.net/npm/phaser@3.70.0/dist/phaser.min.js"></script>
 <script>
 (function(){
   const COLOR=${c1}, PLAYER='${theme.playerLabel}', ENEMY='${theme.enemyLabel}';
   const SCORE_KEY='${scoreKey}';
   const LEVELS=${JSON.stringify(LEVEL_DATA.sokoban)};
   const CELL=${CELL}, GRID=${gridSize}, BOXES=${boxCount}, MOVING=${movingTarget ? 'true' : 'false'};
-  let currentLevel=0, moves=0, gameOver=false, board, playerPos, boxesG, playerG, time=0;
+  if (typeof Phaser === 'undefined') {
+    const g = document.getElementById('g') || document.body;
+    g.innerHTML = '<div style="color:#fff;padding:40px;font:14px monospace">Phaser failed to load. Check the network/CDN.</div>';
+    return;
+  }
+  let currentLevel=0, moves=0, gameOver=false, board, playerPos, boxesG, playerG, time=0, game;
   let lv;
 
   function loadHigh(){try{return JSON.parse(localStorage.getItem(SCORE_KEY)||'{"high":0}').high}catch(e){return 0}}
@@ -126,7 +137,7 @@ ${renderHud({ howToPlay: 'arrow keys push boxes onto targets · undo with U', cu
     for(let i=0;i<useBoxes;i++){const b=lv.boxes[i];board[b.y][b.x]=2}
     const useTargets=Math.min(useBoxes,lv.targets.length);
     for(let i=0;i<useTargets;i++){const t=lv.targets[i];board[t.y][t.x]|=4}
-    new Phaser.Game({type:Phaser.AUTO,parent:'g',width:GRID*CELL+20,height:GRID*CELL+60,
+    game = new Phaser.Game({type:Phaser.AUTO,parent:window.__WHIMSY_G__,width:GRID*CELL+20,height:GRID*CELL+60,
       scene:{
         create(){
           this.add.rectangle((GRID*CELL+20)/2,(GRID*CELL+60)/2,GRID*CELL+20,GRID*CELL+60,0x100800);
@@ -163,6 +174,9 @@ ${renderHud({ howToPlay: 'arrow keys push boxes onto targets · undo with U', cu
   }
 
   newGame();
+  window.__whimsy_cleanup = function() {
+    try { game.destroy(true); } catch (e) {}
+  };
 })();
 </script></body></html>`;
 }

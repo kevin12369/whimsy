@@ -48,15 +48,14 @@ jobs:
           echo "pass=$PASS" >> "$GITHUB_OUTPUT"
       - name: Push tests badge
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-        uses: schneegle/shieldsio-endpoint-action@main
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          type: 'badge'
-          label: 'tests'
-          message: '${{ steps.count.outputs.pass }} passing'
-          color: 'brightgreen'
-          url: 'https://github.com/kevin12369/whimsy/actions/workflows/ci.yml'
-          output: 'apps/web/public/badges/tests.json'
+        # shields.io is a public HTTP endpoint; no third-party action needed.
+        # Writes a small JSON with a static badge URL the README embeds.
+        env:
+          PASS: ${{ steps.count.outputs.pass }}
+        run: |
+          mkdir -p apps/web/public/badges
+          printf '{"schemaVersion":1,"label":"tests","message":"%s passing","color":"brightgreen"}\n' "$PASS" \
+            > apps/web/public/badges/tests.json
       - name: Commit badge update
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         run: |
@@ -89,7 +88,8 @@ jobs:
           SERVER_PID=$!
           sleep 2
           # 4173/static export is what GitHub Pages serves in production.
-          PLAYWRIGHT_BASE_URL=http://localhost:4173/whimsy/ pnpm exec playwright test --reporter=list || EXIT=$?
+          PLAYWRIGHT_BASE_URL=http://localhost:4173/whimsy/ \
+            pnpm exec playwright test --config e2e/playwright.config.ts --reporter=list || EXIT=$?
           kill $SERVER_PID 2>/dev/null || true
           exit ${EXIT:-0}
       - name: Upload Playwright artifacts

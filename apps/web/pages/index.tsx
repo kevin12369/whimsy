@@ -145,15 +145,19 @@ export default function Home() {
         {/* Status badges: 8 shields.io row */}
         <StatusBadges />
 
-        {/* Big preview: 70vh, fills the page */}
-        <section id="demo" className="h-[70vh] w-full bg-black">
-          <iframe
-            key={previewTemplateId + (sampleHtml ? ':sample' : ':template') + (overrideHtml ? ':override' : '')}
-            title={previewTitle}
-            srcDoc={previewHtml}
-            sandbox="allow-scripts allow-same-origin"
-            className="w-full h-full bg-black border-0"
-          />
+        {/* Big preview: replaced by static showcase (Tauri desktop app handles gameplay) */}
+        <section id="demo" className="px-4 py-12 text-center bg-zinc-900">
+          <h2 className="text-2xl font-semibold text-zinc-100">Now a desktop app</h2>
+          <p className="mt-2 text-zinc-400 max-w-xl mx-auto">
+            Whimsy moved to a Tauri desktop app for full Phaser compatibility. Download the latest release for macOS / Windows / Linux.
+          </p>
+          <a href="https://github.com/kevin12369/whimsy/releases"
+            className="mt-6 inline-block bg-blue-600 hover:bg-blue-500 text-white px-6 py-3 rounded font-medium">
+            Download Whimsy
+          </a>
+          <p className="mt-4 text-xs text-amber-400/80">
+            Note: .dmg and .exe are unsigned for v0.3.0. macOS: right-click → Open. Windows: SmartScreen → More info → Run anyway. Linux: chmod +x then run.
+          </p>
         </section>
 
         {/* Export toolbar (PR-3: Copy / Export / Edit) */}

@@ -27,7 +27,6 @@ ${hudStyles}
 </head><body>
 ${renderHud({ howToPlay: '← → move · SPACE shoot · dodge bullets', currentLevel: 1, totalLevels: 3, highScore: 0, score: 0 })}
 <div id="g"></div>
-<script src="https://cdn.jsdelivr.net/npm/phaser@3.70.0/dist/phaser.min.js"></script>
 <script>
 (function(){
   const COLOR=${c1}, ENEMY_COLOR=${enemyColor}, PLAYER='${theme.playerLabel}', ENEMY='${theme.enemyLabel}';
@@ -35,15 +34,20 @@ ${renderHud({ howToPlay: '← → move · SPACE shoot · dodge bullets', current
   const SCROLL_SPEED=${scrollSpeed}, ENEMY_FIRE_RATE=${enemyFireRate}, ENEMY_ROWS=${enemyRows}, LIVES=${lives};
   const LEVELS=${JSON.stringify(LEVEL_DATA.verticalShmup)};
   const BOSS=${JSON.stringify(BOSS_DATA.verticalShmup)};
+  if (typeof Phaser === 'undefined') {
+    const g = document.getElementById('g') || document.body;
+    g.innerHTML = '<div style="color:#fff;padding:40px;font:14px monospace">Phaser failed to load. Check the network/CDN.</div>';
+    return;
+  }
   let score=0, lives=LIVES, currentLevel=0, gameOver=false, bossActive=false, bossPhase=0, bossHp=BOSS.hp, invincibleUntil=0;
-  let player, cursors, bullets, enemies, enemyBullets, boss, lastFire=0, lastEnemyFire=0, phaseTimer=0;
+  let player, cursors, bullets, enemies, enemyBullets, boss, lastFire=0, lastEnemyFire=0, phaseTimer=0, game;
 
   function loadHigh(){try{return JSON.parse(localStorage.getItem(SCORE_KEY)||'{"high":0}').high}catch(e){return 0}}
   function saveHigh(s){try{localStorage.setItem(SCORE_KEY,JSON.stringify({high:Math.max(s,loadHigh())}))}catch(e){}}
   function updateHud(){document.getElementById('hud').innerHTML='HOW TO PLAY: ← → move · SPACE shoot · dodge bullets | Level: '+(currentLevel+1)+'/3 | Score: '+score+' | High: '+loadHigh()}
 
   function newGame(){
-    new Phaser.Game({type:Phaser.AUTO,parent:'g',width:800,height:480,
+    game = new Phaser.Game({type:Phaser.AUTO,parent:window.__WHIMSY_G__,width:800,height:480,
       scene:{
         create(){
           this.add.rectangle(400,240,800,480,0x000018);
@@ -95,8 +99,13 @@ ${renderHud({ howToPlay: '← → move · SPACE shoot · dodge bullets', current
   function hit(scene){lives--;updateHud();if(lives<=0){gameOver=true;saveHigh(score);document.getElementById('g').innerHTML='<div style=color:#fff;text-align:center;padding:80px;font:24px monospace>GAME OVER<br><br>Score: '+score+'<br>High: '+loadHigh()+'<br><br><a style=color:#ff6b3a href=javascript:location.reload()>R to restart</a></div>'}else{player.setPosition(400,420)}}
   function nextLevel(scene){if(currentLevel>=2){saveHigh(score);document.getElementById('g').innerHTML='<div style=color:#fff;text-align:center;padding:80px;font:24px monospace>ALL LEVELS CLEARED<br><br>Score: '+score+'<br>High: '+loadHigh()+'<br><br><a style=color:#ff6b3a href=javascript:location.reload()>Play again</a></div>';return}currentLevel++;score+=150;bossHp=BOSS.hp;updateHud();scene.game.destroy(true);newGame()}
 
-  window.addEventListener('keydown',function(e){if(e.key==='r'||e.key==='R')location.reload()});
+  const restartHandler = function(e){if(e.key==='r'||e.key==='R')location.reload()};
+  window.addEventListener('keydown', restartHandler);
   newGame();
+  window.__whimsy_cleanup = function() {
+    try { game.destroy(true); } catch (e) {}
+    document.removeEventListener('keydown', restartHandler);
+  };
 })();
 </script></body></html>`;
 }
@@ -114,7 +123,6 @@ ${hudStyles}
 </head><body>
 ${renderHud({ howToPlay: 'WASD move · mouse aim · click to shoot · survive N rooms', currentLevel: 1, totalLevels: 3, highScore: 0, score: 0 })}
 <div id="g"></div>
-<script src="https://cdn.jsdelivr.net/npm/phaser@3.70.0/dist/phaser.min.js"></script>
 <script>
 (function(){
   const COLOR=${c1}, PLAYER='${theme.playerLabel}', ENEMY='${theme.enemyLabel}';
@@ -122,15 +130,20 @@ ${renderHud({ howToPlay: 'WASD move · mouse aim · click to shoot · survive N 
   const ROOMS=${rooms}, ENEMIES_PER_ROOM=${enemiesPerRoom}, ENEMY_FIRE_MS=${enemyFireMs};
   const LEVELS=${JSON.stringify(LEVEL_DATA.twinStickBattler)};
   const BOSS=${JSON.stringify(BOSS_DATA.twinStickBattler)};
+  if (typeof Phaser === 'undefined') {
+    const g = document.getElementById('g') || document.body;
+    g.innerHTML = '<div style="color:#fff;padding:40px;font:14px monospace">Phaser failed to load. Check the network/CDN.</div>';
+    return;
+  }
   let score=0, currentLevel=0, roomIdx=0, gameOver=false, bossActive=false, invincibleUntil=0;
-  let player, enemies, enemyBullets, bullets, keyW, keyA, keyS, keyD, boss;
+  let player, enemies, enemyBullets, bullets, keyW, keyA, keyS, keyD, boss, game;
 
   function loadHigh(){try{return JSON.parse(localStorage.getItem(SCORE_KEY)||'{"high":0}').high}catch(e){return 0}}
   function saveHigh(s){try{localStorage.setItem(SCORE_KEY,JSON.stringify({high:Math.max(s,loadHigh())}))}catch(e){}}
   function updateHud(){document.getElementById('hud').innerHTML='HOW TO PLAY: WASD move · mouse aim · click to shoot · survive N rooms | Room: '+(roomIdx+1)+'/'+ROOMS+' | Score: '+score+' | High: '+loadHigh()}
 
   function newGame(){
-    new Phaser.Game({type:Phaser.AUTO,parent:'g',width:800,height:480,
+    game = new Phaser.Game({type:Phaser.AUTO,parent:window.__WHIMSY_G__,width:800,height:480,
       scene:{
         create(){
           this.add.rectangle(400,240,800,480,0x0a0202);
@@ -170,7 +183,12 @@ ${renderHud({ howToPlay: 'WASD move · mouse aim · click to shoot · survive N 
 
   newGame();
 
-  window.addEventListener('keydown',function(e){if(e.key==='r'||e.key==='R')location.reload()});
+  const restartHandler = function(e){if(e.key==='r'||e.key==='R')location.reload()};
+  window.addEventListener('keydown', restartHandler);
+  window.__whimsy_cleanup = function() {
+    try { game.destroy(true); } catch (e) {}
+    document.removeEventListener('keydown', restartHandler);
+  };
 })();
 </script></body></html>`;
 }

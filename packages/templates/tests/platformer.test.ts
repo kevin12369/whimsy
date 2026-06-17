@@ -28,8 +28,9 @@ describe('sideScrollerComet', () => {
   it('renders complete HTML', () => {
     const html = sideScrollerComet.render(theme, cfg);
     expect(html).toContain('<!DOCTYPE html>');
-    expect(html).toContain('phaser.min.js');
+    expect(html).toContain('window.__WHIMSY_G__');
     expect(html).toContain('HOW TO PLAY');
+    expect(html).toContain('__whimsy_cleanup');
   });
 
   it('inlines the clamped playerSpeed into Phaser JS', () => {
