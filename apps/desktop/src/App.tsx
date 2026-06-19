@@ -4,8 +4,20 @@ import InputForm from './components/InputForm';
 import { AIStudioPanel } from './components/AIStudioPanel';
 import LocalProviderCard, { type Status } from './components/LocalProviderCard';
 import { TEMPLATES, getTemplate, defaultConfig } from '@whimsy/templates';
+import { AlertTriangle, Check, Sparkles } from './components/icons';
 
 type DesignerMode = 'classic' | 'ai';
+
+function IconButton({ children, label, onClick, testid }: {
+  children: React.ReactNode; label: string; onClick: () => void; testid: string;
+}) {
+  return (
+    <button type="button" onClick={onClick} aria-label={label} data-testid={testid}
+            className="w-7 h-7 flex items-center justify-center rounded text-zinc-400 hover:text-zinc-50 hover:bg-surface-hover transition-colors">
+      {children}
+    </button>
+  );
+}
 
 export default function App() {
   const [currentId, setCurrentId] = useState(TEMPLATES[0]!.id);
@@ -45,21 +57,22 @@ export default function App() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col bg-zinc-950 text-zinc-100">
-      <header className="px-4 py-3 flex items-center border-b border-zinc-800">
+    <div className="min-h-screen flex flex-col bg-surface-0 text-zinc-50">
+      <header className="px-4 py-3 flex items-center border-b border-surface-border">
         <span className="text-lg font-semibold">Whimsy v3 — Tauri</span>
         <span className="ml-3 text-xs text-zinc-500">5 templates · local LLM · AI Studio</span>
         <div className="ml-auto flex gap-1">
           <button
             onClick={() => setDesignerMode('ai')}
-            className={`text-xs px-3 h-7 rounded ${designerMode === 'ai' ? 'bg-blue-600 text-white' : 'bg-zinc-800 text-zinc-400 hover:text-zinc-100'}`}
+            className={`text-xs px-3 h-7 rounded inline-flex items-center gap-1.5 ${designerMode === 'ai' ? 'bg-blue-600 text-white' : 'bg-surface-3 text-zinc-400 hover:text-zinc-50 hover:bg-surface-hover'}`}
             data-testid="mode-ai"
           >
+            <Sparkles className="w-3.5 h-3.5" />
             AI Studio
           </button>
           <button
             onClick={() => setDesignerMode('classic')}
-            className={`text-xs px-3 h-7 rounded ${designerMode === 'classic' ? 'bg-blue-600 text-white' : 'bg-zinc-800 text-zinc-400 hover:text-zinc-100'}`}
+            className={`text-xs px-3 h-7 rounded ${designerMode === 'classic' ? 'bg-blue-600 text-white' : 'bg-surface-3 text-zinc-400 hover:text-zinc-50 hover:bg-surface-hover'}`}
             data-testid="mode-classic"
           >
             Classic
@@ -70,7 +83,7 @@ export default function App() {
         <section id="demo" className="h-[70vh] w-full bg-black relative">
           <GamePreview html={previewHtml} key={previewKey} />
           {aiGameName && (
-            <div className="absolute top-2 left-2 text-xs text-zinc-400 bg-black/60 px-2 py-1 rounded" data-testid="ai-game-badge">
+            <div className="absolute top-2 left-2 text-xs text-zinc-300 bg-black/70 px-2 py-1 rounded" data-testid="ai-game-badge">
               AI: {aiGameName}
             </div>
           )}
@@ -85,9 +98,9 @@ export default function App() {
               disabled={genBusy}
               detectedStatus={status}
             />
-            {genError && <p className="text-red-400 px-4 py-2 text-sm">⚠ {genError}</p>}
+            {genError && <p className="flex items-start gap-1.5 text-danger px-4 py-2 text-sm" data-testid="gen-error"><AlertTriangle className="mt-0.5 shrink-0" /><span>{genError}</span></p>}
             {genResult?.ok && (
-              <p className="text-emerald-400 px-4 py-2 text-sm">✓ Generated {genResult.bytes} bytes.</p>
+              <p className="flex items-center gap-1.5 text-success px-4 py-2 text-sm" data-testid="gen-result"><Check /> Generated {genResult.bytes} bytes — preview updated</p>
             )}
           </>
         )}
