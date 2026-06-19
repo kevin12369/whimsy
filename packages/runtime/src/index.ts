@@ -13,3 +13,4 @@ export { mount } from './canvas-mount';
 export type { MountOptions } from './canvas-mount';
 
 export * from './spec';
+export * from './level-generator';
