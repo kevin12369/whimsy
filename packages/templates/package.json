@@ -10,7 +10,9 @@
     "lint": "tsc --noEmit"
   },
   "dependencies": {
-    "@whimsy/prompt": "workspace:*"
+    "@whimsy/prompt": "workspace:*",
+    "@whimsy/runtime": "workspace:*",
+    "kaplay": "^3001.0.19"
   },
   "devDependencies": {
     "typescript": "^5.4.0",
