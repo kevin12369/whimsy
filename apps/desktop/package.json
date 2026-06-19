@@ -16,7 +16,10 @@
     "@whimsy/templates": "workspace:*",
     "@whimsy/sandbox": "workspace:*",
     "@whimsy/llm": "workspace:*",
-    "@whimsy/prompt": "workspace:*"
+    "@whimsy/prompt": "workspace:*",
+    "@whimsy/agents": "workspace:*",
+    "@whimsy/runtime": "workspace:*",
+    "@whimsy/lib": "workspace:*"
   },
   "devDependencies": {
     "@tauri-apps/cli": "^2.1.0",
