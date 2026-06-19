@@ -14,3 +14,5 @@ export type { MountOptions } from './canvas-mount';
 
 export * from './spec';
 export * from './level-generator';
+export * from './compiler';
+export * from './asset-pipeline';
