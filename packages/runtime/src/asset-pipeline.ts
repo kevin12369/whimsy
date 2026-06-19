@@ -1,7 +1,7 @@
 export interface AssetProvider {
   name: string;
   isAvailable(): Promise<boolean>;
-  generateSprite(opts: { prompt: string; size: number; palette: string[] }): Promise<Buffer | null>;
+  generateSprite(opts: { prompt: string; size: number; palette: string[] }): Promise<Uint8Array | null>;
 }
 
 export class NullAssetProvider implements AssetProvider {
@@ -11,7 +11,7 @@ export class NullAssetProvider implements AssetProvider {
     return true;
   }
 
-  async generateSprite(_opts: { prompt: string; size: number; palette: string[] }): Promise<Buffer | null> {
+  async generateSprite(_opts: { prompt: string; size: number; palette: string[] }): Promise<Uint8Array | null> {
     return null;
   }
 }
