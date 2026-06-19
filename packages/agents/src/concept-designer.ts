@@ -1,6 +1,7 @@
 import { chat } from '@whimsy/lib';
 import { gameSpecSchema, type GameSpec } from '@whimsy/runtime';
 import { z } from 'zod';
+import { jsonrepair } from 'jsonrepair';
 import { SPEC_FEW_SHOT_EXAMPLES } from './spec-templates';
 
 const SYSTEM_PROMPT = `You are a game designer. Generate exactly 3 distinct game design candidates as a JSON array. Each must satisfy the GameSpec schema strictly.
@@ -41,18 +42,37 @@ export async function designConcepts(userPrompt: string): Promise<GameSpec[]> {
       system: systemMessage,
       user: userMessage,
       temperature: 0.8,
-      maxTokens: 2500,
+      maxTokens: 4000,
     });
 
-    // Strip markdown fences if present
-    const cleaned = raw.replace(/^```json\s*/i, '').replace(/```\s*$/, '').trim();
+    // Extract JSON array from raw output (LLM often adds prose before/after)
+    // 1. Strip markdown fences
+    let cleaned = raw.replace(/^```json\s*/i, '').replace(/```\s*$/, '').trim();
+    // 2. Find first '[' and last ']' to isolate the JSON array
+    const firstBracket = cleaned.indexOf('[');
+    const lastBracket = cleaned.lastIndexOf(']');
+    if (firstBracket !== -1 && lastBracket !== -1 && lastBracket > firstBracket) {
+      cleaned = cleaned.slice(firstBracket, lastBracket + 1);
+    }
 
     try {
       const parsed = JSON.parse(cleaned);
       const validated = z.array(gameSpecSchema).parse(parsed);
       return validated;
     } catch (e) {
-      lastError = (e as Error).message;
+      // First attempt failed; try jsonrepair to fix common LLM JSON errors
+      // (double commas, single quotes, missing brackets, trailing commas)
+      try {
+        const repaired = jsonrepair(cleaned);
+        const parsed = JSON.parse(repaired);
+        const validated = z.array(gameSpecSchema).parse(parsed);
+        console.log(`[concept-designer] attempt ${attempt}: jsonrepair recovered the output`);
+        return validated;
+      } catch (repairErr) {
+        const err = e as Error;
+        lastError = err.message.slice(0, 300);
+        console.error(`[concept-designer] attempt ${attempt} failed:`, lastError);
+      }
     }
   }
   throw new Error(`Failed to design concepts after ${MAX_ATTEMPTS} attempts`);

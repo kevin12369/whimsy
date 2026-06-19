@@ -12,6 +12,7 @@
   "dependencies": {
     "@whimsy/lib": "workspace:*",
     "@whimsy/runtime": "workspace:*",
+    "jsonrepair": "^3.14.0",
     "zod": "^3.23.0"
   },
   "devDependencies": {
