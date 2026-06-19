@@ -4,7 +4,9 @@ export const gameSpecSchema = z.object({
   meta: z.object({
     name: z.string().min(1).max(40),
     flavor: z.string().min(1).max(120),
-    templateHint: z.literal('platformer'),
+    // Accept any string for templateHint; we always force 'platformer' since MVP only supports 1 template.
+    // LLM often invents its own labels ("sideScroller", "platformer", "2d platformer"), so we relax + override.
+    templateHint: z.string(),
   }),
   mechanics: z.object({
     gravity: z.number().min(400).max(1500),

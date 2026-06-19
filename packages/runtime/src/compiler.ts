@@ -24,6 +24,7 @@ export function compileSpec(spec: GameSpec): CompiledGame {
   });
 
   // 4. Build config with spec-derived overrides
+  // templateHint is always 'sideScroller' (only platformer is supported in MVP)
   const config: GameConfig = {
     ...baseConfig,
     type: 'sideScroller',
