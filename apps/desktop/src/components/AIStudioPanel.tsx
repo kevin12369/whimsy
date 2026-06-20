@@ -45,7 +45,7 @@ export function AIStudioPanel({ onGameReady }: AIStudioPanelProps) {
       setCandidates(specs);
     } catch (e) {
       const msg = (e as Error).message;
-      const isPermanent = /ollama|ECONNREFUSED|fetch failed|not running/i.test(msg);
+      const isPermanent = /ollama|ECONNREFUSED|ENOTFOUND|ETIMEDOUT|ECONNRESET|EHOSTUNREACH|fetch failed|504|503|502|network|timeout|not running|abort|model not found|404/i.test(msg);
       setError({ kind: isPermanent ? 'permanent' : 'transient', msg });
     } finally {
       setLoading(false);
@@ -138,7 +138,7 @@ export function AIStudioPanel({ onGameReady }: AIStudioPanelProps) {
               : 'text-warn bg-warn/5 border border-warn/20'
           }`}
           data-testid="ai-studio-error"
-          role="alert"
+          role={error.kind === 'permanent' ? 'alert' : 'status'}
           aria-live="polite"
         >
           <span className="flex-1">{error.msg}</span>
