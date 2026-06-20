@@ -165,7 +165,7 @@ export function AIStudioPanel({ onGameReady }: AIStudioPanelProps) {
               key={idx}
               onClick={() => compileAndSelect(idx)}
               disabled={compilingIdx !== null}
-              className="text-left rounded-lg border border-zinc-700 bg-zinc-800 p-2.5 hover:border-zinc-500 transition-colors disabled:opacity-50"
+              className="text-left rounded-lg border border-zinc-700 bg-zinc-800 p-2.5 hover:border-zinc-500 transition-colors disabled:opacity-50 min-h-[88px]"
               data-testid={`ai-studio-candidate-${idx}`}
             >
               <div className="flex items-center justify-between mb-1">
