@@ -28,6 +28,14 @@ export default function InputForm({
       ? { kind: 'ok', msg: 'local LLM detected' }
       : { kind: 'warn', msg: 'no local LLM detected (default config)' };
 
+  const disabledReason = disabled
+    ? status.kind === 'pending'
+      ? 'Checking local LLM...'
+      : status.kind === 'warn'
+      ? 'No local LLM detected. Start Ollama (ollama serve) or LM Studio, then click refresh.'
+      : 'Already generating...'
+    : null;
+
   return (
     <div className="px-4 py-3 border-t border-surface-border">
       <div className={`flex items-center gap-1.5 text-xs mb-2 ${
@@ -52,8 +60,12 @@ export default function InputForm({
           placeholder="Describe a game (e.g. side-scrolling platformer avoiding asteroids)"
           className="flex-1 bg-surface-3 border border-surface-border rounded px-3 py-2 text-sm text-zinc-50 placeholder:text-zinc-600 focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent/30 transition-colors"
         />
-        <button type="submit" disabled={disabled}
-          className="bg-white text-zinc-950 hover:bg-zinc-200 font-medium px-4 py-2 rounded text-sm disabled:opacity-40 disabled:cursor-not-allowed transition-colors">
+        <button
+          type="submit"
+          disabled={disabled}
+          title={disabledReason ?? undefined}
+          className="bg-white text-zinc-950 hover:bg-zinc-200 font-medium px-4 py-2 rounded text-sm disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+        >
           {disabled ? 'Generating...' : 'Generate'}
         </button>
       </form>
