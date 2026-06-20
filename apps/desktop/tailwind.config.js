@@ -36,7 +36,6 @@ module.exports = {
           'PingFang SC',
           'Microsoft YaHei',
           'Noto Sans CJK SC',
-          'Noto Sans SC',
           'sans-serif',
         ],
         mono: ['JetBrains Mono', 'Menlo', 'Consolas', 'monospace'],
