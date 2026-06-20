@@ -18,10 +18,10 @@
 | `npx tsc --noEmit` (apps/desktop) | 0 errors |
 | `npx vite build` | success, +<2 KB vs Phase A start |
 | Manual: hover disabled Generate in no-LLM state | tooltip explains Ollama + LM Studio |
-| Manual: kill Rust backend, wait 10s | "no response" warn appears |
+| Manual: stop Rust backend (`taskkill /F /IM whimsy-desktop.exe` on Windows, `pkill -f whimsy-desktop` on Unix), wait 10s | "no response" warn appears |
 | Manual: trigger 3-attempt LLM failure | Retry button appears (warn styling); permanent errors get danger styling + no retry |
 | Manual: candidate cards uniform height | min-h-[88px] holds across varying description lengths |
-| Linux machine with `fonts-noto-cjk` installed | CJK glyphs render via Noto Sans CJK SC |
+| Linux machine with Noto CJK installed (Debian/Ubuntu `fonts-noto-cjk`, Fedora `google-noto-sans-cjk-fonts`, Arch `noto-fonts-cjk`) | CJK glyphs render via Noto Sans CJK SC |
 
 ## What is NOT covered (deferred to Phase B/C)
 
