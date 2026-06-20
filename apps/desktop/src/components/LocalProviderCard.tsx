@@ -19,6 +19,24 @@ function ProviderStatus({ running, name }: { running: boolean | undefined; name:
       </span>
     );
   }
+  // Status undefined means we haven't received a successful response yet.
+  // After 10s with no response, escalate from neutral to warn so the user notices.
+  return <NoResponseOrChecking slug={slug} />;
+}
+
+function NoResponseOrChecking({ slug }: { slug: string }) {
+  const [stale, setStale] = useState(false);
+  useEffect(() => {
+    const id = setTimeout(() => setStale(true), 10_000);
+    return () => clearTimeout(id);
+  }, []);
+  if (stale) {
+    return (
+      <span className="flex items-center gap-1 text-warn" data-testid={`status-${slug}-stale`}>
+        <AlertTriangle /> no response (is Rust backend running?)
+      </span>
+    );
+  }
   return (
     <span className="flex items-center gap-1 text-zinc-500" data-testid={`status-${slug}-pending`}>
       <span className="w-3 h-3 rounded-full border border-zinc-600 border-t-zinc-300 animate-spin" aria-hidden />
