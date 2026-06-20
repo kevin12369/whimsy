@@ -11,6 +11,7 @@ import { designConcepts } from '@whimsy/agents';
 import { isOllamaAvailable } from '@whimsy/lib';
 import { compileSpec, type GameSpec } from '@whimsy/runtime';
 import { sideScrollerComet, clampConfig } from '@whimsy/templates';
+import { RefreshCw as RefreshIcon } from './icons';
 
 export interface AIStudioPanelProps {
   /** Called when user picks a candidate and we have the compiled HTML. */
@@ -26,7 +27,7 @@ export function AIStudioPanel({ onGameReady }: AIStudioPanelProps) {
   const [prompt, setPrompt] = useState('');
   const [candidates, setCandidates] = useState<GameSpec[]>([]);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<{ kind: 'transient' | 'permanent'; msg: string } | null>(null);
   const [ollamaOk, setOllamaOk] = useState<boolean | null>(null);
   const [compilingIdx, setCompilingIdx] = useState<number | null>(null);
 
@@ -43,7 +44,9 @@ export function AIStudioPanel({ onGameReady }: AIStudioPanelProps) {
       const specs = await designConcepts(prompt);
       setCandidates(specs);
     } catch (e) {
-      setError((e as Error).message);
+      const msg = (e as Error).message;
+      const isPermanent = /ollama|ECONNREFUSED|fetch failed|not running/i.test(msg);
+      setError({ kind: isPermanent ? 'permanent' : 'transient', msg });
     } finally {
       setLoading(false);
     }
@@ -80,7 +83,8 @@ export function AIStudioPanel({ onGameReady }: AIStudioPanelProps) {
       const html = sideScrollerComet.render(theme, v3Config);
       onGameReady(html, spec.meta.name);
     } catch (e) {
-      setError(`Compile failed: ${(e as Error).message}`);
+      const msg = (e as Error).message;
+      setError({ kind: 'permanent', msg: `Compile failed: ${msg}` });
     } finally {
       setCompilingIdx(null);
     }
@@ -127,8 +131,27 @@ export function AIStudioPanel({ onGameReady }: AIStudioPanelProps) {
       </button>
 
       {error && (
-        <div className="text-xs text-red-400" data-testid="ai-studio-error">
-          {error}
+        <div
+          className={`flex items-start gap-1.5 text-xs p-2 rounded ${
+            error.kind === 'permanent'
+              ? 'text-danger bg-danger/5 border border-danger/20'
+              : 'text-warn bg-warn/5 border border-warn/20'
+          }`}
+          data-testid="ai-studio-error"
+          role="alert"
+          aria-live="polite"
+        >
+          <span className="flex-1">{error.msg}</span>
+          {error.kind === 'transient' && (
+            <button
+              type="button"
+              onClick={handleDesign}
+              className="flex items-center gap-1 text-zinc-300 hover:text-zinc-50 shrink-0"
+              data-testid="ai-studio-retry"
+            >
+              <RefreshIcon size={11} /> Retry
+            </button>
+          )}
         </div>
       )}
 
