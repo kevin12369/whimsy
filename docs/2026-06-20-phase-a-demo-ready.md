@@ -16,7 +16,7 @@
 | Check | Result |
 |---|---|
 | `npx tsc --noEmit` (apps/desktop) | 0 errors |
-| `npx vite build` | success, +<2 KB vs Phase A start |
+| `npx vite build` | success, +2.17 KB JS / +0.22 KB CSS vs Linear-reshape baseline (290.17 KB / 21.68 KB) |
 | Manual: hover disabled Generate in no-LLM state | tooltip explains Ollama + LM Studio |
 | Manual: stop Rust backend (`taskkill /F /IM whimsy-desktop.exe` on Windows, `pkill -f whimsy-desktop` on Unix), wait 10s | "no response" warn appears |
 | Manual: trigger 3-attempt LLM failure | Retry button appears (warn styling); permanent errors get danger styling + no retry |
