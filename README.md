@@ -104,36 +104,38 @@ Requires Node.js 20+ and pnpm 9+. The first dev run downloads the WebLLM model i
 
 ```
 whimsy/
-  apps/                                    <- application shells
-    web/                                   <- Phase 1+ browser app (planned)
+  index.html                                <- Vite entry
+  package.json
+  tsconfig.json
+  vite.config.ts
+  vitest.config.ts
+  playwright.config.ts
+  public/
+    sprites/                                <- (Task 15) placeholder PNGs
+    atlas/                                  <- (Task 15) sprite atlases
+    sfx/                                    <- (Task 15) SFX placeholders
+    bgm/                                    <- (Task 15) BGM placeholders
+  src/
+    main.ts                                 <- Phaser game config
+    config/                                 <- constants, assets, themes
+    core/                                   <- eventBus, cardSystem, worldState
+    procgen/                                <- perlin, wfc, biomes, itemTable, deckFallback
+    phaser/
+      scenes/                               <- Boot, Menu, Game, HUD, Hand
+      entities/                             <- Player, NPC, Item, Card, FusionAltar
+    llm/                                    <- WebLLM worker (Phase 2)
+    ui/                                     <- HUD, settings, card hand, fusion altar
+    utils/                                  <- uuid, color, assetLoader
+  tests/                                    <- unit + e2e
+  scripts/                                  <- build-atlas, download-assets
+  .github/
+    workflows/
+      deploy.yml                            <- GitHub Pages deploy
   docs/
     superpowers/
-      specs/
-        2026-06-20-whimsy-shuffle-design.md
-        2026-06-20-whimsy-shuffle-design.zh-CN.md
-      plans/
-        ...                                <- per-phase implementation plans
-  README.md                                <- this file
-  package.json
-  pnpm-workspace.yaml
-```
-
-When Phase 1 lands, `src/` will follow the spec §9 layout:
-
-```
-src/
-  main.ts                                  <- entry point
-  config/                                  <- model registry, prompts, asset manifest
-  core/                                    <- card system, world state, event bus
-  procgen/                                 <- perlin, wfc, item table, deck fallback
-  phaser/
-    scenes/                                <- Boot, Menu, Game, HUD, Hand
-    entities/                              <- Player, NPC, Item, Card, FusionAltar
-  llm/                                     <- WebLLM worker + prompt + parsers + queue
-  ui/                                      <- HUD, settings, card hand, fusion altar
-  utils/                                   <- uuid, color, assetLoader
-tests/                                     <- unit + e2e
-benchmark/                                 <- perf scripts
+      specs/                                <- design specs
+      plans/                                <- implementation plans
+  README.md
 ```
 
 ## Development

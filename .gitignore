@@ -1,12 +1,40 @@
+# Node / package managers
 node_modules/
+.pnpm-store/
+
+# Build output
 dist/
-.next/
-out/
-.wrangler/
-*.log
+build/
+*.tsbuildinfo
+
+# Editor / OS
+.vscode/
+.idea/
 .DS_Store
+Thumbs.db
+
+# Vite
+.vite/
+
+# Phaser
+public/sprites/raw/
+public/sprites/atlas/
+
+# Local env
 .env
 .env.local
+.env.*.local
+
+# Logs
+*.log
+npm-debug.log*
+pnpm-debug.log*
+
+# Test artifacts
 coverage/
-*.tsbuildinfo
-apps/web/next-env.d.ts
+playwright-report/
+test-results/
+
+# Temporary
+tmp/
+*.tmp
