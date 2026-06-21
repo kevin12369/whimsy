@@ -58,8 +58,13 @@ export class GameScene extends Phaser.Scene {
     this.wasd = this.input.keyboard!.addKeys('W,A,S,D') as Record<string, Phaser.Input.Keyboard.Key>;
     this.hudText = this.add.text(offsetX + 8, offsetY + 8, `Level ${this.session.currentLevelIndex + 1}/${this.session.maxLevels}`, { color: '#fff' });
     // Back-to-menu hint, top-right of the map.
-    this.add.text(1280 - offsetX - 110, offsetY + 8, '[Esc] Menu', { fontSize: '12px', color: '#aaa' });
-    this.input.keyboard!.on('keydown-ESC', () => this.scene.start('MenuScene'));
+    this.add.text(1280 - offsetX - 110, offsetY + 8, '[Esc] Pause', { fontSize: '12px', color: '#aaa' });
+    this.input.keyboard!.on('keydown-ESC', () => this.openPause());
+  }
+
+  private openPause() {
+    this.scene.launch('PauseScene');
+    this.scene.pause();
   }
 
   private drawTilemap(offsetX: number, offsetY: number) {
