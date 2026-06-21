@@ -77,9 +77,9 @@ export class GameScene extends Phaser.Scene {
       },
       dt / 1000,
     );
-    const tx = Math.floor(next.x / this.tileSize);
-    const ty = Math.floor(next.y / this.tileSize);
-    if (canMoveTo(tx, ty, this.w, this.h, this.tilemap)) {
+    const tx = Math.round(next.x / this.tileSize);
+    const ty = Math.round(next.y / this.tileSize);
+    if (canMoveTo(next.x, next.y, this.w, this.h, this.tilemap)) {
       this.player.x = offsetX + next.x;
       this.player.y = offsetY + next.y;
     }
