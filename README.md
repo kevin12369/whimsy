@@ -111,8 +111,9 @@ whimsy/
   vitest.config.ts
   playwright.config.ts
   public/
-    sprites/                                <- (Task 15) placeholder PNGs
-    atlas/                                  <- (Task 15) sprite atlases
+    sprites/
+      raw/                                  <- (Task 15) source PNGs (gitignored)
+      atlas/                                <- (Task 15) packed atlases (gitignored)
     sfx/                                    <- (Task 15) SFX placeholders
     bgm/                                    <- (Task 15) BGM placeholders
   src/
@@ -130,7 +131,8 @@ whimsy/
   scripts/                                  <- build-atlas, download-assets
   .github/
     workflows/
-      deploy.yml                            <- GitHub Pages deploy
+      codeql.yml                           <- (existing) CodeQL scan
+      deploy.yml                           <- (planned, Task 14) GitHub Pages deploy
   docs/
     superpowers/
       specs/                                <- design specs
