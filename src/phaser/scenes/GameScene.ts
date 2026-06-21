@@ -46,7 +46,7 @@ export class GameScene extends Phaser.Scene {
     const offsetX = (1280 - this.w * this.tileSize) / 2;
     const offsetY = (720 - this.h * this.tileSize) / 2;
     this.drawTilemap(offsetX, offsetY);
-    this.player = this.add.rectangle(offsetX + this.tileSize * 2, offsetY + this.tileSize * 2, 20, 20, 0xffffff);
+    this.player = this.add.rectangle(offsetX + this.tileSize * 2, offsetY + this.tileSize * 2, 12, 12, 0x00ffff);
     this.keys = this.input.keyboard!.createCursorKeys();
     this.wasd = this.input.keyboard!.addKeys('W,A,S,D') as Record<string, Phaser.Input.Keyboard.Key>;
     this.hudText = this.add.text(offsetX + 8, offsetY + 8, `Level ${this.session.currentLevelIndex + 1}/${this.session.maxLevels}`, { color: '#fff' });
