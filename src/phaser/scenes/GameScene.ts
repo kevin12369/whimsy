@@ -66,7 +66,7 @@ export class GameScene extends Phaser.Scene {
       this.session = advanceLevel(this.session);
       gameBus.emit('level:exit', { levelIndex: this.session.currentLevelIndex });
       this.hudText.setText(`Level ${this.session.currentLevelIndex + 1}/${this.session.maxLevels}`);
-      this.scene.restart({ levelIndex: this.session.currentLevelIndex });
+      this.scene.start('GameScene', { levelIndex: this.session.currentLevelIndex });
     }
   }
 }
