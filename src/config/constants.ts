@@ -1,0 +1,1 @@
+export const PHASER_VERSION = '3.80.1';
