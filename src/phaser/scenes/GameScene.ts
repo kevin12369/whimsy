@@ -15,6 +15,7 @@ export class GameScene extends Phaser.Scene {
   private exitPos = { x: 0, y: 0 };
   private session = createSession();
   private hudText!: Phaser.GameObjects.Text;
+  private escKey!: Phaser.Input.Keyboard.Key;
 
   init(data: { levelIndex?: number }) {
     // Override default level index from data if provided (used on level transitions).
@@ -59,7 +60,8 @@ export class GameScene extends Phaser.Scene {
     this.hudText = this.add.text(offsetX + 8, offsetY + 8, `Level ${this.session.currentLevelIndex + 1}/${this.session.maxLevels}`, { color: '#fff' });
     // Back-to-menu hint, top-right of the map.
     this.add.text(1280 - offsetX - 110, offsetY + 8, '[Esc] Pause', { fontSize: '12px', color: '#aaa' });
-    this.input.keyboard!.on('keydown-ESC', () => this.openPause());
+    this.escKey = this.input.keyboard!.addKey('ESC');
+    this.escKey.on('down', () => this.openPause());
   }
 
   private openPause() {

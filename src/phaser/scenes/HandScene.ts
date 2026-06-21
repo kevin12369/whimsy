@@ -6,7 +6,7 @@ import { gameBus } from '../../core/eventBus';
 
 export class HandScene extends Phaser.Scene {
   private currentPhysics = defaultPhysics();
-  constructor() { super({ key: 'HandScene', active: true }); }
+  constructor() { super('HandScene'); }
   create() {
     gameBus.on('card:played-physics', ({ cardId }) => {
       const deck = this.registry.get('deck') as Deck | undefined;
