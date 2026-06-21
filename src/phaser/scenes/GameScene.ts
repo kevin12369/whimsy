@@ -24,9 +24,24 @@ export class GameScene extends Phaser.Scene {
   }
 
   create() {
-    const biome = BIOMES[Math.floor(Math.random() * BIOMES.length)]!;
-    this.w = 64; this.h = 48;
+    // Phase 1: force forest biome for a playable tile mix (no impassable water lake).
+    // biome selection will move to deck-aware picking in Task 12 follow-up.
+    const biome = BIOMES.find(b => b.id === 'forest') ?? BIOMES[0]!;
+    // Fit the 1280x720 canvas: 40 cols x 30 rows x 16px = 640x480, centered.
+    this.w = 40; this.h = 30;
     this.tilemap = runWFC(this.w, this.h, { seed: Date.now() & 0xffff, weights: biomeWeights(biome.id) });
+    // Force player spawn area (top-left 3x3) to be floor so the player isn't trapped in water/wall.
+    for (let y = 0; y < 3; y++) {
+      for (let x = 0; x < 3; x++) {
+        this.tilemap[y * this.w + x] = 0;
+      }
+    }
+    // Force exit area (bottom-right 3x3) to be floor too.
+    for (let y = this.h - 3; y < this.h; y++) {
+      for (let x = this.w - 3; x < this.w; x++) {
+        this.tilemap[y * this.w + x] = 0;
+      }
+    }
     this.exitPos = { x: this.w - 2, y: this.h - 2 };
     this.drawTilemap();
     this.player = this.add.rectangle(this.tileSize * 2, this.tileSize * 2, 20, 20, 0xffffff);
@@ -36,20 +51,29 @@ export class GameScene extends Phaser.Scene {
   }
 
   private drawTilemap() {
+    const offsetX = (1280 - this.w * this.tileSize) / 2;
+    const offsetY = (720 - this.h * this.tileSize) / 2;
     for (let y = 0; y < this.h; y++) {
       for (let x = 0; x < this.w; x++) {
         const t = this.tilemap[y * this.w + x]!;
         const color = t === 1 ? 0x444444 : t === 2 ? 0x2244aa : 0x222222;
-        this.add.rectangle(x * this.tileSize, y * this.tileSize, this.tileSize, this.tileSize, color).setOrigin(0);
+        this.add.rectangle(offsetX + x * this.tileSize, offsetY + y * this.tileSize, this.tileSize, this.tileSize, color).setOrigin(0);
       }
     }
-    this.add.rectangle(this.exitPos.x * this.tileSize, this.exitPos.y * this.tileSize, this.tileSize, this.tileSize, 0xffff00).setOrigin(0);
+    this.add.rectangle(offsetX + this.exitPos.x * this.tileSize, offsetY + this.exitPos.y * this.tileSize, this.tileSize, this.tileSize, 0xffff00).setOrigin(0);
+    // Re-position player + HUD relative to the centered map.
+    this.player.x = offsetX + this.tileSize * 2;
+    this.player.y = offsetY + this.tileSize * 2;
+    this.hudText.x = offsetX + 8;
+    this.hudText.y = offsetY + 8;
   }
 
   override update(_t: number, dt: number) {
     if (!this.player) return;
+    const offsetX = (1280 - this.w * this.tileSize) / 2;
+    const offsetY = (720 - this.h * this.tileSize) / 2;
     const next = computeMove(
-      { x: this.player.x, y: this.player.y },
+      { x: this.player.x - offsetX, y: this.player.y - offsetY },
       {
         up: this.keys.up.isDown || this.wasd.W!.isDown,
         down: this.keys.down.isDown || this.wasd.S!.isDown,
@@ -61,7 +85,8 @@ export class GameScene extends Phaser.Scene {
     const tx = Math.floor(next.x / this.tileSize);
     const ty = Math.floor(next.y / this.tileSize);
     if (canMoveTo(tx, ty, this.w, this.h, this.tilemap)) {
-      this.player.x = next.x; this.player.y = next.y;
+      this.player.x = offsetX + next.x;
+      this.player.y = offsetY + next.y;
     }
     if (reachedExit({ x: tx, y: ty }, this.exitPos)) {
       this.session = advanceLevel(this.session);
