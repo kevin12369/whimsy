@@ -1,6 +1,6 @@
 import Phaser from 'phaser';
 import { BootScene } from './phaser/scenes/BootScene';
-import { PHASER_VERSION } from './config/constants';
+import { PHASER_VERSION } from './phaser/version';
 
 export { PHASER_VERSION };
 

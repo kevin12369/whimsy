@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { PHASER_VERSION } from '../src/config/constants';
+import { PHASER_VERSION } from '../src/phaser/version';
 
 describe('main module', () => {
   it('exports Phaser version 3', () => {
