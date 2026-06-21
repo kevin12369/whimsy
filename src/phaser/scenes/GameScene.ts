@@ -6,6 +6,7 @@ import { computeMove, canMoveTo } from '../entities/Player';
 import { gameBus } from '../../core/eventBus';
 
 export class GameScene extends Phaser.Scene {
+  constructor() { super('GameScene'); }
   private player!: Phaser.GameObjects.Rectangle;
   private keys!: Phaser.Types.Input.Keyboard.CursorKeys;
   private wasd!: Record<string, Phaser.Input.Keyboard.Key>;

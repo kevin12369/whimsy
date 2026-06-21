@@ -2,6 +2,7 @@ import Phaser from 'phaser';
 import { computeMove } from '../entities/Player';
 
 export class PlayerTestScene extends Phaser.Scene {
+  constructor() { super('PlayerTestScene'); }
   private player?: Phaser.GameObjects.Rectangle;
   private keys!: Phaser.Types.Input.Keyboard.CursorKeys;
   private wasd!: Record<'W'|'A'|'S'|'D', Phaser.Input.Keyboard.Key>;
