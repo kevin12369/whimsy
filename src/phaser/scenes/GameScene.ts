@@ -1,7 +1,7 @@
 import Phaser from 'phaser';
 import { runWFC } from '../../procgen/wfc';
 import { biomeWeights, BIOMES } from '../../procgen/biomes';
-import { createSession, advanceLevel, reachedExit } from '../../core/sessionLoop';
+import { createSession, advanceLevel, reachedExit, reachedExitPixel } from '../../core/sessionLoop';
 import { computeMove, canMoveTo } from '../entities/Player';
 import { gameBus } from '../../core/eventBus';
 
@@ -92,7 +92,8 @@ export class GameScene extends Phaser.Scene {
       this.player.x = offsetX + next.x;
       this.player.y = offsetY + next.y;
     }
-    if (reachedExit({ x: tx, y: ty }, this.exitPos)) {
+    // Player trigger uses pixel bbox overlap against the 2x2 exit block.
+    if (reachedExitPixel(this.player.x - offsetX, this.player.y - offsetY, this.exitPos.x, this.exitPos.y, this.tileSize, 2, 2)) {
       // If this was the final level, finish the session and return to menu.
       if (this.session.currentLevelIndex >= this.session.maxLevels - 1) {
         gameBus.emit('level:exit', { levelIndex: this.session.currentLevelIndex });
