@@ -169,50 +169,100 @@ graph TB
 
 ## 5. Core Mechanics
 
-### 5.1 Theme Generation (always on, 1 call per session)
+### 5.0 Card System (the "shuffle" backbone)
 
-When a new session starts, the LLM is asked to invent a coherent "world theme" that drives visual style, level flavor, item names, and NPC personality.
+The whole game runs on **cards**. Every interactive element in a session — themes, physics perturbations, items, NPCs, hidden unlocks — is a card with a fixed schema. The LLM's only job is to **fill a session's deck** at start; after that, the game is fully client-driven and card effects are pre-baked.
 
-**Example input to LLM** (abbreviated):
-> "Invent a whimsical world theme. Output JSON with: name, palette (5 hex), 5 item names, 3 NPC roles, 1 rule quirk."
+**Why cards, not free text input:**
+- **Bounded input.** No "type whatever you want" — players play cards, never generate raw text. This keeps the world controllable.
+- **Bounded LLM output.** LLM fills card slots inside a strict schema, not free JSON, so output quality is higher.
+- **Combinable.** Two cards fuse, an item plus a card produces a level, three cards trigger a hidden level. The card metaphor carries the whole fusion system.
+- **Discoverable.** "Draw a card, play a card, fuse cards" is a familiar mechanic (Slay the Spire, Inscryption, Balatro).
+
+**Card taxonomy** (5 types, ~34-45 cards per session):
+
+| Type | Count / session | Source | Effect |
+|---|---|---|---|
+| Theme | 1 | LLM | Locks palette, naming, quirk for the whole session |
+| Physics | 8 | LLM | Playable; mutates active level physics (pre-baked, no LLM at play time) |
+| Item | 20-30 | LLM + procgen | Pickup-able; inventory item |
+| NPC | 3 | LLM | Defines an NPC's role + personality |
+| Hidden | 2-3 | LLM | Specific fusion combos unlock hidden levels |
+
+**Fusion paths** (fusion altar):
+
+| Inputs | Output | Example |
+|---|---|---|
+| Item + Item | Item | vine whip + brine comet = Brine Lash |
+| Item + Physics card | Item (with persistent effect) | Box + Moon card = Floating Box |
+| **Item + any card** | **Hidden level** | Box + random card = Box World (unlocks) |
+| Card + Card | New card | Moon + Sea = Tide card |
+
+**The shuffle metaphor is now literal**: each session = a new shuffled deck. The LLM's job shrinks to "build a coherent 30-40 card deck that fits the theme".
+
+### 5.1 Theme & Deck Generation (always on, 1 call per session)
+
+When a new session starts, the LLM is asked to build the entire deck in one call. This replaces the old "theme only" call.
 
 **Example LLM output (Phi-3.5)**:
 ```json
 {
-  "name": "Cucumber Cosmos",
-  "palette": ["#a8e6cf", "#dcedc1", "#ffd3b6", "#ffaaa5", "#ff8b94"],
-  "itemNames": ["pickled star", "brine comet", "vine whip", "ferment orb", "dill drone"],
-  "npcRoles": ["cosmic pickle vendor", "wandering brine sage", "vine keeper"],
-  "ruleQuirk": "All liquids flow upward."
+  "themeCard": {
+    "name": "Cucumber Cosmos",
+    "palette": ["#a8e6cf", "#dcedc1", "#ffd3b6", "#ffaaa5", "#ff8b94"],
+    "ruleQuirk": "All liquids flow upward."
+  },
+  "itemCards": [
+    { "name": "pickled star", "sprite": "orb_yellow", "behavior": "glows when held" },
+    { "name": "brine comet", "sprite": "whip_blue", "behavior": "splashes on impact" },
+    { "name": "vine whip", "sprite": "whip_red", "behavior": "extends 3 tiles" },
+    { "name": "ferment orb", "sprite": "orb_green", "behavior": "slows nearby liquids" },
+    { "name": "dill drone", "sprite": "shield_gold", "behavior": "follows player for 5s" }
+  ],
+  "physicsCards": [
+    { "name": "Moon Bounce", "gravity": 200, "restitution": 0.95, "friction": 0.1 },
+    { "name": "Heavy Brine", "gravity": 1400, "restitution": 0.1, "friction": 0.8 },
+    { "name": "Icy Ground", "gravity": 800, "restitution": 0.2, "friction": 0.05 },
+    { "name": "Sticky Vine", "gravity": 800, "restitution": 0.0, "friction": 1.5 }
+  ],
+  "npcCards": [
+    { "role": "cosmic pickle vendor", "personality": "rambles about brine, friendly, cryptic" },
+    { "role": "wandering brine sage", "personality": "speaks in questions, philosophical" },
+    { "role": "vine keeper", "personality": "terse, protective of greenery" }
+  ],
+  "hiddenCards": [
+    { "name": "Cucumber Memory", "unlockRecipe": ["vine whip", "ferment orb"] },
+    { "name": "Brine Gate", "unlockRecipe": ["brine comet", "dill drone"] }
+  ]
 }
 ```
 
-This JSON is then read by Phaser to recolor tiles, rename HUD labels, and tag NPC dialogue prompts.
+This JSON is read by Phaser to drive visuals, populate the world, and seed NPC dialogue prompts.
 
-### 5.2 Physics Perturbation (opt-in per level, 1 call)
+### 5.2 Physics Perturbation (opt-in per level, 0 LLM calls at play time)
 
-Player opens a small input box, types a short phrase (1-3 words, e.g. "spicy", "low gravity", "sticky"). The LLM translates this into a physics rule patch that overrides defaults for the current level.
-
-**Example**:
-- Input: `"moon bounce"`
-- LLM output:
-  ```json
-  {
-    "gravity": 200,
-    "restitution": 0.95,
-    "friction": 0.1,
-    "note": "Bouncy moon rules active."
-  }
-  ```
-- Phaser physics engine patches these values into the active level.
-
-**Opt-in**: the player must open the input box. No surprise physics changes.
-
-### 5.3 Item Fusion (opt-in per level, 1 call)
-
-Player drags two items from inventory onto a fusion altar. LLM is asked to invent a new item that combines them.
+Player opens their hand of **physics cards** (drawn from the session deck, seeable in HUD), picks one, and drags it onto the active level. The card's effect is **pre-baked** at deck generation time — no LLM call, no text input, no ambiguity.
 
 **Example**:
+- Player hand: `[Moon Bounce, Heavy Brine, Icy Ground, Sticky Vine]`
+- Player drags `Moon Bounce` onto the level.
+- Phaser physics engine patches `gravity=200, restitution=0.95, friction=0.1` into the active level.
+- HUD shows: "Moon Bounce active — revert at level exit"
+
+**Opt-in & bounded**: the player picks a card, never types. Card effects came from LLM during deck generation (validated once), not free text.
+
+### 5.3 Item Fusion (opt-in per level, 1 LLM call per fusion)
+
+Player drags two cards onto the fusion altar. Three fusion paths:
+
+| Inputs | Output | LLM call? |
+|---|---|---|
+| Item + Item | New item | Yes (call) |
+| Item + Physics card | New item (with persistent effect) | Yes (call) |
+| Item + any card | Hidden level unlock | Yes (call, level-recipe prompt) |
+| Card + Card | New card | No (composable client-side from existing card stats) |
+
+**Example: Item + Item**:
 - Input: `{ "a": "vine whip", "b": "brine comet" }`
 - LLM output:
   ```json
@@ -224,115 +274,183 @@ Player drags two items from inventory onto a fusion altar. LLM is asked to inven
   }
   ```
 
-**Opt-in**: requires explicit drag onto altar.
+**Example: Item + Card = hidden level**:
+- Input: `{ "item": "Box", "card": "dill drone" }`
+- LLM output:
+  ```json
+  {
+    "levelName": "Box Drone World",
+    "paletteOverride": ["#c4a484", "#8b6f47", "#5e4a2f"],
+    "ruleQuirk": "Boxes are alive and chatty."
+  }
+  ```
+- The player is teleported to the unlocked level after the current one ends.
+
+**Opt-in**: requires explicit drag onto altar. No surprise fusions.
 
 ### 5.4 NPC Dialogue (always on if model loaded, N calls)
 
-Each NPC has a small personality prompt derived from the session theme. When the player presses "talk" near an NPC, the LLM generates a 1-2 sentence in-character line, optionally with a hint about a hidden item or a hint at the level's secret.
+Each NPC draws from an **NPC card** (role + personality) generated at deck time. When the player presses "talk" near an NPC, the LLM generates a 1-2 sentence in-character line, optionally hinting at a hidden card recipe or level secret.
 
 **Example**:
-- NPC: "cosmic pickle vendor" (personality: "rambles about brine, friendly, slightly cryptic")
+- NPC card: role = "cosmic pickle vendor", personality = "rambles about brine, friendly, cryptic"
 - Player presses talk.
 - LLM output (streamed): `"Ah, traveler! The brine runs thin near the eastern gate. I left a ferment orb there in '98. Or was it '99? Time pickles everything."`
 
 **Always on (when model is loaded)**: dialogue is part of the world, not a player action.
 
-### 5.5 Hidden Easter Eggs (always on, 1 call per level)
+### 5.5 Hidden Levels (unlocked by hidden card recipes, 1 call per unlock)
 
-At level end, the LLM is asked to invent one short, atmospheric "secret" — a line of text the player discovers by exploring a marked tile. Designed to be poetic, not puzzle-like.
+The 2-3 **hidden cards** in the deck each carry a `unlockRecipe` — a specific pair of in-world items. When the player fuses that exact pair, a hidden level is unlocked.
 
 **Example**:
-- LLM output: `"Under the third stone from the vine wall, a pickle remembers being a cucumber."`
+- Hidden card "Cucumber Memory": recipe = `[vine whip, ferment orb]`
+- Player drags `vine whip` + `ferment orb` onto altar.
+- LLM is called to generate the hidden level's name, palette, and rule quirk.
+- The level is added to the session and becomes reachable via the level select.
 
-The egg is rendered as floating text in-world when the player walks near the marker.
+**Why this is better than the old "find a tile, read text" eggs:**
+- It's a discovery *plus* an action (fuse) — the player has agency.
+- The reward is a level, not a sentence — replayable, not one-shot.
+- The hidden cards' recipes are deliberately *almost* matching common fusions, so players discover them by experimenting.
 
 ### 5.6 Pure Procgen Mode (default opt-out)
 
-All five LLM-driven mechanics above are **disabled**. World, items, NPCs, and rules are all generated by deterministic Perlin + WFC + hardcoded item table. Dialogue becomes fixed template strings. Theme is the only "session" element and is randomly drawn from a hardcoded list of 16 themes.
+All five LLM-driven mechanics above are **disabled**. World, items, NPCs, rules, and cards are all generated by deterministic Perlin + WFC + a hardcoded deck of 16 themes (each theme is a hand-authored card bundle). Dialogue becomes fixed template strings. Hidden levels become unreachable.
 
 ---
 
 ## 6. Data Model
 
-### 6.1 SessionTheme
+### 6.1 Card (the universal atomic unit)
+
+All interactive content in a session is a card. The `type` discriminator decides which fields are populated.
+
 ```ts
-interface SessionTheme {
+type CardType = "theme" | "physics" | "item" | "npc" | "hidden";
+
+interface Card {
   id: string;                  // uuid
-  name: string;                // "Cucumber Cosmos"
-  palette: string[];           // 5 hex colors
-  itemNames: string[];         // 5 names
-  npcRoles: string[];          // 3 roles
-  ruleQuirk: string;           // 1 sentence
+  type: CardType;
+  name: string;                // 1-3 words
+  // Type-specific payloads (only one is populated based on `type`):
+  themePayload?: ThemePayload;
+  physicsPayload?: PhysicsPayload;
+  itemPayload?: ItemPayload;
+  npcPayload?: NpcPayload;
+  hiddenPayload?: HiddenPayload;
   generatedBy: "llm" | "fallback";
   generatedAt: number;         // epoch ms
 }
+
+interface ThemePayload {
+  palette: string[];           // 5 hex colors
+  ruleQuirk: string;           // 1 sentence
+}
+
+interface PhysicsPayload {
+  gravity: number;             // 100-2000, default 800
+  restitution: number;         // 0-1, default 0.3
+  friction: number;            // 0-1.5, default 0.5
+  note: string;                // HUD tooltip
+}
+
+interface ItemPayload {
+  spriteKey: string;           // snake_case, from sprite palette
+  behavior: string;            // 1 sentence, for fusion prompts
+  stackable: boolean;
+  // World placement (assigned at deck activation, not generation):
+  spawnPool?: "common" | "rare";
+}
+
+interface NpcPayload {
+  role: string;                // 2-4 words
+  personality: string;         // 1 sentence prompt seed
+}
+
+interface HiddenPayload {
+  unlockRecipe: [string, string]; // pair of item names that, when fused, unlock a level
+}
 ```
 
-### 6.2 Level
+### 6.2 Deck (per session)
+
+```ts
+interface Deck {
+  id: string;                  // uuid, same as session id
+  themeCard: Card;             // 1
+  physicsCards: Card[];        // 8
+  itemCards: Card[];           // 20-30
+  npcCards: Card[];            // 3
+  hiddenCards: Card[];         // 2-3
+  generatedBy: "llm" | "fallback";
+  generatedAt: number;
+}
+```
+
+### 6.3 Level
 ```ts
 interface Level {
-  index: number;               // 0..4
-  theme: SessionTheme;
+  index: number;               // 0..4 (+ unlocked hidden levels)
+  deck: Deck;                  // reference to session deck
   tilemap: string;             // serialized WFC output
   widthTiles: number;          // default 64
   heightTiles: number;         // default 48
-  items: Item[];
-  npcs: NPC[];
-  physicsPatch: PhysicsPatch | null;
+  spawnedItems: PlacedItem[];  // itemCards placed in this level
+  npcs: PlacedNpc[];           // npcCards placed in this level
+  activePhysicsCard: Card | null; // physics card currently active (set by player)
   exitTile: { x: number; y: number };
-  hiddenEgg: HiddenEgg | null;
+  unlockedBy?: string;         // hidden card id that unlocked this level (if any)
+}
+
+interface PlacedItem {
+  cardId: string;              // ref to Card in deck.itemCards
+  pos: { x: number; y: number };
+}
+
+interface PlacedNpc {
+  cardId: string;              // ref to Card in deck.npcCards
+  pos: { x: number; y: number };
+  dialogueHistory: string[];   // last 3 lines
 }
 ```
 
-### 6.3 Item
+### 6.4 FusedItem (result of an item+item or item+card fusion)
+
 ```ts
-interface Item {
+interface FusedItem {
   id: string;
   name: string;
   spriteKey: string;
-  behavior: string;            // human-readable, for fusion prompt context
+  behavior: string;
   stackable: boolean;
-  pos: { x: number; y: number };
-  fusedFrom?: [string, string]; // item ids if fused
+  fusedFrom: {
+    type: "item+item" | "item+card" | "card+card";
+    inputs: [string, string];  // card or item ids
+  };
 }
 ```
 
-### 6.4 NPC
+### 6.5 HiddenLevel (unlocked by hidden card recipe)
+
 ```ts
-interface NPC {
+interface HiddenLevel {
   id: string;
-  role: string;                // "cosmic pickle vendor"
-  personality: string;         // 1 sentence prompt seed
-  pos: { x: number; y: number };
-  dialogueHistory: string[];   // last 3 lines, for context window
+  name: string;
+  paletteOverride: string[];   // 3-5 hex colors
+  ruleQuirk: string;
+  unlockRecipeCardId: string;  // ref to Card in deck.hiddenCards
 }
 ```
 
-### 6.5 PhysicsPatch
-```ts
-interface PhysicsPatch {
-  gravity?: number;            // default 800
-  restitution?: number;        // default 0.3
-  friction?: number;           // default 0.5
-  note?: string;               // shown in HUD tooltip
-}
-```
-
-### 6.6 HiddenEgg
-```ts
-interface HiddenEgg {
-  triggerTile: { x: number; y: number };
-  text: string;                // 1 sentence, poetic
-}
-```
-
-### 6.7 WorldState (in-memory only)
+### 6.6 WorldState (in-memory only)
 ```ts
 interface WorldState {
-  session: SessionTheme | null;
+  deck: Deck | null;
+  levels: Level[];             // base 5 + any unlocked hidden levels
   currentLevelIndex: number;
-  levels: Level[];
-  inventory: Item[];
+  inventory: FusedItem[];      // fused items the player is carrying
+  hand: Card[];                // physics cards currently in player's hand (subset of deck.physicsCards)
   llmStats: {
     callsThisSession: number;
     totalLatencyMs: number;
@@ -343,56 +461,72 @@ interface WorldState {
 }
 ```
 
+**Why cards are first-class:**
+- All schemas reference `Card` (or a card id) — no parallel "Theme" or "PhysicsPatch" type.
+- `Deck` replaces the old `SessionTheme`.
+- The fusion altar reads inputs as `(Card | FusedItem, Card | FusedItem)` — types are uniform.
+- The procgen fallback can produce a fully-functional deck of hardcoded cards without ever touching the LLM.
+
 ---
 
 ## 7. LLM Prompt Design
 
-All prompts are designed to fit in a 1024-token context and produce a single JSON object as output. A simple `try/parse` wrapper is used; parse failure triggers a single retry, then procgen fallback.
+All prompts fit in a 1024-token context and produce a single JSON object (or single string for hidden egg). A shared `safeParseLLMJson(raw)` wrapper: trim, strip code fences, attempt `JSON.parse`, on failure strip trailing commas, retry once with a "fix this JSON" continuation prompt, on second failure call the procgen fallback for that mechanic.
 
-### 7.1 Theme generation
+### 7.1 Deck generation (replaces old theme generation)
+
+This is the single biggest LLM call. It produces the entire session's deck in one shot.
+
 ```
-SYSTEM: You invent whimsical game world themes. Always respond with one JSON object. No prose, no markdown, no preamble.
+SYSTEM: You build a coherent deck of cards for a whimsical 2D game world. Always respond with one JSON object. No prose, no markdown, no preamble.
 
-USER: Invent a unique whimsical world theme. Constraints:
-- name: 2-3 evocative words
-- palette: exactly 5 hex colors, no duplicates
-- itemNames: exactly 5 short fantasy item names (1-3 words each)
-- npcRoles: exactly 3 role names that fit the theme
-- ruleQuirk: one short rule twist (1 sentence, max 12 words)
+USER: Build a complete session deck. Constraints:
+- 1 theme card: name (2-3 words), palette (exactly 5 hex colors, no dupes), ruleQuirk (1 sentence, max 12 words)
+- exactly 8 physics cards: name (1-3 words), gravity (int 100-2000), restitution (float 0-1), friction (float 0-1.5), note (max 8 words)
+- exactly 5 item cards (the rest are auto-filled from the procgen pool): name (1-3 words), spriteKey from this set [whip_red, whip_blue, orb_green, orb_yellow, sword_cyan, sword_violet, shield_gold, potion_pink], behavior (1 sentence, max 12 words), stackable (false)
+- exactly 3 NPC cards: role (2-4 words), personality (1 sentence, max 15 words)
+- exactly 2 hidden cards: name (2-3 words), unlockRecipe (a pair of item names from itemCards)
 
-Respond with JSON only, matching this shape:
-{"name": "...", "palette": ["#...", ...], "itemNames": ["...", ...], "npcRoles": ["...", ...], "ruleQuirk": "..."}
-```
-
-### 7.2 Physics perturbation
-```
-SYSTEM: You translate a player phrase into a 2D platformer physics patch. Respond with one JSON object only.
-
-USER: Player phrase: "{{PLAYER_INPUT}}"
-
-Defaults if not specified: gravity=800, restitution=0.3, friction=0.5, dragX=0.99.
-Pick sensible values for the phrase. Note: 1 short sentence (max 10 words).
+All cards must feel like they belong to the same world.
 
 JSON shape:
-{"gravity": <int 100-2000>, "restitution": <float 0-1>, "friction": <float 0-1>, "note": "..."}
+{
+  "themeCard": { "name": "...", "palette": ["#...", ...], "ruleQuirk": "..." },
+  "physicsCards": [{ "name": "...", "gravity": <int>, "restitution": <float>, "friction": <float>, "note": "..." }, ...],
+  "itemCards": [{ "name": "...", "spriteKey": "snake_case", "behavior": "...", "stackable": false }, ...],
+  "npcCards": [{ "role": "...", "personality": "..." }, ...],
+  "hiddenCards": [{ "name": "...", "unlockRecipe": ["item name A", "item name B"] }, ...]
+}
 ```
 
-### 7.3 Item fusion
-```
-SYSTEM: You fuse two fantasy items into a new one. Respond with one JSON object only.
+### 7.2 Physics perturbation — REMOVED
 
-USER: Fuse these two items:
-A: {{ITEM_A_NAME}} — behavior: {{ITEM_A_BEHAVIOR}}
-B: {{ITEM_B_NAME}} — behavior: {{ITEM_B_BEHAVIOR}}
+The old "player types a phrase" mechanic is gone. The LLM has already produced the 8 physics cards during deck generation; the player just plays one. No LLM call at perturbation time.
+
+### 7.3 Item fusion (handles 3 paths)
+
+```
+SYSTEM: You fuse two items (or one item + one card) into a new game item, or unlock a hidden level. Respond with one JSON object only. No prose, no markdown, no preamble.
+
+USER: Fusion input:
+- A: {{INPUT_A_NAME}} — type: {{INPUT_A_TYPE}} — behavior: {{INPUT_A_BEHAVIOR}}
+- B: {{INPUT_B_NAME}} — type: {{INPUT_B_TYPE}} — behavior: {{INPUT_B_BEHAVIOR}}
+
+Pick the right fusion path:
+- If both A and B are items: produce a new FusedItem.
+- If one is an item and the other is a card (physics/npc/hidden/theme): produce a new FusedItem that absorbs the card's effect, OR a HiddenLevel if the card is a hidden card matching the recipe.
+- If a hiddenCard with matching unlockRecipe is in play: produce a HiddenLevel.
+
+JSON shape (FusedItem):
+{"kind": "item", "name": "...", "sprite": "snake_case from sprite palette", "behavior": "...", "stackable": false}
+
+JSON shape (HiddenLevel):
+{"kind": "level", "levelName": "...", "paletteOverride": ["#...", ...], "ruleQuirk": "..."}
 
 Constraints:
-- name: 1-3 words
-- spriteKey: snake_case, choose from this palette: [whip_red, whip_blue, orb_green, orb_yellow, sword_cyan, sword_violet, shield_gold, potion_pink]
-- behavior: 1 sentence (max 15 words)
-- stackable: false
-
-JSON shape:
-{"name": "...", "sprite": "snake_case", "behavior": "...", "stackable": false}
+- FusedItem name: 1-3 words
+- FusedItem behavior: 1 sentence, max 15 words
+- HiddenLevel ruleQuirk: 1 sentence, max 12 words
 ```
 
 ### 7.4 NPC dialogue
@@ -400,30 +534,29 @@ JSON shape:
 SYSTEM: You roleplay a game NPC. Stay in character, keep it 1-2 sentences, no preamble.
 
 USER:
-NPC role: {{NPC_ROLE}}
-NPC personality: {{NPC_PERSONALITY}}
+NPC card: {{NPC_CARD_JSON}}
+  - role: {{NPC_ROLE}}
+  - personality: {{NPC_PERSONALITY}}
 World theme: {{THEME_NAME}} — {{THEME_QUIRK}}
-Player just said: {{PLAYER_ACTION}} ("talked to me")
+Hidden card hints in this world: {{HIDDEN_CARD_RECIPES_JSON}}   // may hint at recipes in dialogue
+Player just: {{PLAYER_ACTION}} ("talked to me")
 Last 3 things you said: {{DIALOGUE_HISTORY_JSON}}
 
-Speak now. Avoid repeating the same opener as your history.
+Speak now. Avoid repeating the same opener as your history. You may hint at a hidden card recipe, but never name both items directly.
 ```
 
-### 7.5 Hidden easter egg
-```
-SYSTEM: You write a one-sentence poetic secret hidden in a 2D game world. 1 sentence, max 18 words, no preamble.
+### 7.5 Hidden level generation
 
-USER: World theme: {{THEME_NAME}} — {{THEME_QUIRK}}
-Level: {{LEVEL_INDEX}} of 5
-Recent items on this level: {{ITEM_NAMES}}
+Triggered by a hiddenCard recipe match. Same call as fusion path 2 (handled inside the fusion prompt above, when `kind: "level"` is produced). No separate prompt.
 
-Write a single atmospheric line that a player would find and read once. Poetic, not puzzle-like.
-Respond with a single string only (no JSON).
-```
+### 7.6 Card + Card fusion — REMOVED (client-side)
 
-### 7.6 Output parsing
-- A single shared `safeParseLLMJson(raw)` helper: trims, strips code fences, attempts `JSON.parse`, on failure strips trailing commas, retries once with a "fix this JSON" continuation prompt. On second failure, calls the procgen fallback for that mechanic.
-- All 4 JSON-shaped mechanics share the helper. The hidden egg is plain text and uses a simpler trim+take-first-line.
+Card + Card fusion is deterministic and handled in `cardSystem.compose(a, b)` on the client. No LLM call. Example: `Moon + Sea` always produces `Tide` (a card with both effects combined). The composition table is in `src/core/cardComposition.ts` and is hand-authored.
+
+### 7.7 Output parsing
+- A single shared `safeParseLLMJson(raw)` helper handles all 3 JSON-shaped calls (deck gen, item fusion, NPC dialogue).
+- NPC dialogue returns a string (not JSON) — uses a simpler `trim + take first non-empty line` parser.
+- On any 2nd-failure, the per-mechanic procgen fallback runs (see §5.6 and §8.2).
 
 ---
 
@@ -438,11 +571,11 @@ Respond with a single string only (no JSON).
 | Model download (Phi-3.5, ~2.3GB) | 60s | 120s |
 | Model warmup (compile + first token) | 5s | 15s |
 | Subsequent model loads (cached) | < 3s | 8s |
-| Theme generation LLM call | 3-5s | 15s timeout |
-| Physics perturbation LLM call | 3-5s | 12s timeout |
+| Theme / deck generation LLM call | 5-8s | 15s timeout |
 | Item fusion LLM call | 3-5s | 12s timeout |
 | NPC dialogue LLM call | 2-4s | 10s timeout |
-| Hidden egg LLM call | 2-3s | 10s timeout |
+| Hidden level unlock (per fusion hit) | 3-5s | 12s timeout |
+| Physics perturbation (client-side, no LLM) | < 16ms | 1 frame |
 | Total LLM time per 5-level session | 30-60s | 90s |
 | Frame rate during LLM inference | 30-60 FPS | 20 FPS minimum |
 | Memory footprint (JS heap + model) | < 6GB | 8GB |
@@ -494,21 +627,25 @@ whimsy/
           eventBus.ts                         <- typed pub/sub
           worldState.ts                       <- WorldState container
           save.ts                             <- in-memory only
+          cardSystem.ts                       <- Card / Deck / Fusion core (LLM-independent)
+          cardComposition.ts                  <- card+card deterministic composition table
         procgen/
           perlin.ts
           wfc.ts                              <- Wave Function Collapse
           itemTable.ts                        <- hardcoded item pool
-          themeFallback.ts                    <- 16 hardcoded themes
+          deckFallback.ts                     <- 16 hardcoded decks (one per theme)
         phaser/
           scenes/
             BootScene.ts
             MenuScene.ts
             GameScene.ts
             HudScene.ts
+            HandScene.ts                      <- physics card hand view
           entities/
             Player.ts
             Npc.ts
             ItemEntity.ts
+            CardEntity.ts                     <- card-on-ground pickup
             FusionAltar.ts
           tilemap/
             levelLoader.ts
@@ -522,15 +659,17 @@ whimsy/
         ui/
           Hud.ts
           SettingsPanel.ts
-          PerturbationInput.ts
+          CardHandView.ts                     <- player's physics card hand
+          FusionAltarUI.ts                    <- drag two cards to fuse
         utils/
           uuid.ts
           color.ts
       tests/
         procgen/
         llm/
-        e2e/                                   <- Playwright
-      benchmark/                               <- perf scripts
+        cardSystem/                           <- card composition, fusion, hidden level
+        e2e/                                  <- Playwright
+      benchmark/                              <- perf scripts
         measureLoad.ts
         measureInference.ts
 ```
@@ -540,7 +679,7 @@ whimsy/
 ## 10. Implementation Phases
 
 ### Phase 1 — Pure Procgen (no LLM, no WebGPU required)
-**Goal**: A fully playable, fun sandbox with zero AI dependency. This is the minimum shippable product.
+**Goal**: A fully playable, fun sandbox with zero AI dependency. The deck is built from 16 hardcoded theme bundles. All card mechanics work without LLM.
 
 | Task | Description | Done when |
 |---|---|---|
@@ -548,39 +687,42 @@ whimsy/
 | 1.2 | Perlin noise terrain generator + tile renderer | Walkable, visible terrain |
 | 1.3 | Player controller (top-down, WASD + mouse aim) | Player can move, collide with walls |
 | 1.4 | WFC tile sampler for biome + decoration | 5 distinct biome variants |
-| 1.5 | Item entity + pickup + inventory (max 6 slots) | Pick up, drop, see in HUD |
-| 1.6 | NPC entity + proximity prompt + fixed dialogue table | Talk to NPC, see templated line |
-| 1.7 | Level exit trigger + 5-level session loop | Play through 5 levels end-to-end |
-| 1.8 | 16 hardcoded themes, randomly chosen at session start | Each new session has a different theme |
-| 1.9 | Settings panel: mode toggle (locks to "procgen" in this phase) | UI works |
-| 1.10 | Static deploy to GitHub Pages | Game loads from `https://...github.io/...` |
+| 1.5 | Card data model + Deck container + 16 hardcoded decks | All card types round-trip through `Card` interface |
+| 1.6 | CardEntity (card-on-ground) + pickup + inventory (max 6 slots) | Pick up a card, see in HUD |
+| 1.7 | NPC entity + proximity prompt + fixed dialogue table | Talk to NPC, see templated line |
+| 1.8 | Level exit trigger + 5-level session loop | Play through 5 levels end-to-end |
+| 1.9 | CardHandView: physics cards visible in HUD, drag-onto-level to apply | Drag Moon Bounce card onto level, physics change |
+| 1.10 | FusionAltarUI: drag two item cards, get hand-authored fused item | Drag vine whip + brine comet -> Brine Lash |
+| 1.11 | Hidden card recipe check: matching pair unlocks a hardcoded hidden level | Fuse matching pair, new level appears in level select |
+| 1.12 | Settings panel: mode toggle (locks to "procgen" in this phase) | UI works |
+| 1.13 | Static deploy to GitHub Pages | Game loads from `https://...github.io/...` |
 
 **LLM calls in Phase 1: 0.** Game is complete and shippable at end of Phase 1.
 
-### Phase 2 — LLM Theme Generation (AI opt-in, 1 mechanic)
-**Goal**: Prove the WebLLM integration works end-to-end on one mechanic. Theme generation is the lowest-risk, highest-visibility choice.
+### Phase 2 — LLM Deck Generation (AI opt-in, 1 mechanic)
+**Goal**: Prove the WebLLM integration works end-to-end by generating the deck in one call. Replaces the 16 hardcoded decks with LLM-authored ones.
 
 | Task | Description | Done when |
 |---|---|---|
 | 2.1 | WebLLM dependency added, Web Worker scaffold created | Worker boots, model URL configured |
 | 2.2 | Model loader: download + warmup + progress events in HUD | Progress bar shows during download |
-| 2.3 | Prompt template + JSON parser + fallback for theme gen | First successful theme parsed |
-| 2.4 | Theme data flows into Phaser: palette recolor, item rename, NPC role update | World visibly changes per session |
+| 2.3 | Deck-generation prompt template + JSON parser + deck fallback | First successful deck parsed; fallback path tested |
+| 2.4 | Deck data flows into Phaser: theme palette recolor, card names, NPC roles | World visibly changes per session |
 | 2.5 | Settings panel: model picker (Phi-3.5 default, Qwen 2.5 optional) | Player can switch models |
 | 2.6 | Graceful degradation: WebGPU missing -> hide AI option, stay procgen | Tested in non-WebGPU browser |
 | 2.7 | Model cache reuse: second load <5s | Tested with refresh |
 
-**LLM calls per session in Phase 2: 1** (theme generation). Total: 3-5s on RTX 3060.
+**LLM calls per session in Phase 2: 1** (deck generation). Total: 5-8s on RTX 3060 (larger output than old theme-only call).
 
-### Phase 3 — Full AI Enhancement (all 4 mechanics)
-**Goal**: All opt-in + always-on LLM mechanics wired, performance budget met, fallbacks solid.
+### Phase 3 — Full AI Enhancement (fusion + dialogue + hidden)
+**Goal**: Remaining LLM-driven mechanics wired. Card hand and physics perturbation are already client-side; the only LLM work left is item fusion, NPC dialogue, and hidden level generation.
 
 | Task | Description | Done when |
 |---|---|---|
-| 3.1 | Physics perturbation: input UI + LLM call + live patch + revert on level end | Type "moon bounce" -> bouncy physics |
-| 3.2 | Item fusion: drag-to-altar UI + LLM call + new item appears in inventory | Fuse "vine whip" + "brine comet" -> "Brine Lash" |
+| 3.1 | Item fusion: extend fusion altar to call LLM, parse FusedItem or HiddenLevel | Fuse vine whip + brine comet -> LLM-generated Brine Lash |
+| 3.2 | Hidden level unlock: LLM generates palette + quirk for unlocked level | Unlock Box World, level loaded with new visual style |
 | 3.3 | NPC dialogue: replace fixed table with LLM-generated lines, history context | Talk to NPC, get unique 1-2 sentence line |
-| 3.4 | Hidden easter egg: per-level marker + LLM line + in-world float text | Find egg, read line |
+| 3.4 | Hidden recipe hints in NPC dialogue: NPC may hint at recipe items | Talk to right NPC, get a clue about the hidden pair |
 | 3.5 | Call queue: serialize LLM calls, enforce timeouts, increment stats | No two calls overlap, all respect budget |
 | 3.6 | Per-mechanic fallback: each mechanic has a procgen fallback path | Disable model mid-game, game still works |
 | 3.7 | End-to-end perf test: 5-level session, LLM on, measure total time | < 90s on RTX 3060 |
@@ -595,24 +737,27 @@ whimsy/
 
 ### Phase 1 done means
 - A new player can load the page and play a 5-level session in under 5 minutes.
-- Each new "Reshuffle" produces a visibly different theme (palette, item names, NPC roles).
+- Each new "Reshuffle" produces a visibly different deck (theme palette, card names, NPC roles, physics effects).
+- The player can drag a physics card onto a level and see physics change live, with no LLM call.
+- The player can fuse two item cards on the fusion altar and see a new item appear.
+- The player can fuse a hidden-card recipe pair and unlock a hidden level.
 - The game runs at 30+ FPS on an RTX 3060 with no model loaded.
-- The codebase fits in one developer's head (~2000 lines of game code).
+- The codebase fits in one developer's head (~2500 lines of game code, including card system).
 - Static deploy works: open URL, play immediately, no console errors.
 - A portfolio reader can clone, `npm install`, `npm run dev`, and play in under 2 minutes.
 
 ### Phase 2 done means
 - A player who picks "Procgen + AI" sees a model download progress bar on first run.
-- After the model is ready, a new session produces a theme whose palette is reflected in the in-game tiles, items, and NPCs.
-- The theme is a coherent noun-phrase + 5 colors + 5 names (validated against schema, not garbage).
+- After the model is ready, a new session produces a deck whose theme palette is reflected in the in-game tiles, items, and NPCs.
+- The deck is a coherent theme card + 8 physics cards + 5 LLM-authored item cards + 3 NPC cards + 2 hidden cards, all validated against schema, none garbage.
 - If the player closes the tab during model load and returns, the model is cached and load is < 5s.
 - The mode toggle in settings still works and "Pure Procgen" never touches the model code path.
-- End-to-end smoke test: in AI mode, every new session has a non-empty, valid `SessionTheme` JSON.
+- End-to-end smoke test: in AI mode, every new session has a non-empty, valid `Deck` JSON.
 
 ### Phase 3 done means
-- All 4 LLM mechanics are reachable via documented player actions.
+- All LLM-driven mechanics (item fusion LLM call, NPC dialogue, hidden level generation) are reachable via documented player actions.
 - A 5-level session with AI mode on makes 5-10 LLM calls totaling 30-60s on RTX 3060.
-- Disabling the model mid-game does not crash; the game continues with procgen fallbacks.
+- Disabling the model mid-game does not crash; the game continues with procgen fallbacks for fusion dialogue and hidden level.
 - No LLM call exceeds its 15s timeout. Timeouts trigger fallback within 1 frame.
 - The LLM worker does not block the main thread; frame rate stays at 30+ FPS during inference.
 - A second play session after a refresh loads in < 5s and reaches the first level in < 3s.
