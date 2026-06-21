@@ -84,18 +84,18 @@
 | 阶段 | 玩家操作 | 系统响应 |
 |---|---|---|
 | 开始 | 点击 "New Shuffle"(新洗牌) | LLM 生成本局主题(1 次调用,~3-5s) |
-| L1 | 走动、发现道具、与 NPC 对话 | LLM 生成的 NPC 对话流式出现 |
-| L1 结束 | 触碰到关卡出口 | 生成该关的隐藏彩蛋(1 次调用,~2-3s) |
-| L2 | 打开物理扰动面板,输入 "spicy" | 该关物理规则变异(1 次调用,~3-5s) |
-| L3 | 拖两个道具到融合祭坛 | 道具融合结果(1 次调用,~3-5s),需主动触发 |
-| L4 | 自由游玩 | 可选 LLM 惊喜时刻 |
+| L1 | 走动、发现道具、与 NPC 对话(靠近时按 `E`) | LLM 按需生成 1-2 句台词(每次对话 1 次调用,~2-4s) |
+| L1 结束 | 触碰到关卡出口 | 进入下一关(0 次 LLM 调用) |
+| L2 | 把物理卡拖到当前关卡 | 重力 / 摩擦 / 弹性实时变化(0 次 LLM 调用;卡牌在生成卡组时已预烘焙) |
+| L3 | 拖两张道具卡到融合祭坛 | 道具融合结果(1 次调用,~3-5s),需主动触发 |
+| L4 | 自由游玩 | 无 LLM 活动;纯探索 |
 | L5 结束 | 触碰到最终出口 | 本局总结,显示本局 LLM 调用总数 |
 
-每局 LLM 调用:**5-10 次**、**30-60s 总耗时**(RTX 3060)。
+每局 LLM 调用:AI 模式下 **5-10 次**,纯程序生成模式下 **0 次**。**30-60s 总耗时**(RTX 3060)。
 
 ### 3.3 持续游玩
 
-- 完成一局后,玩家可 "Reshuffle"(新主题+新关卡)或 "Continue"(保留主题、新关卡)。
+- 完成一局后,玩家可 "Reshuffle"(新主题+新关卡)或 "Continue"(保留主题,用新 WFC 种子重洗瓦片地图;主题卡牌保留)。
 - 设置面板暴露:模型选择、每个机制 LLM 开关、重置模型缓存。
 - 无存档槽。每局都是短暂存在的——乐趣在于洗牌本身。
 
@@ -103,7 +103,7 @@
 
 - WebGPU 不可用:显示友好的 "你的浏览器不支持 WebGPU" 提示,默认进入**纯程序生成**模式。游戏仍完全可玩。
 - 模型下载失败:停留在纯程序生成模式,HUD 显示一行提示。
-- 某次 LLM 调用超时(>15s):取消,用程序生成回退,除"AI skipped for speed"外不向用户记录任何信息。
+- 某次 LLM 调用超时(>15s):取消,用程序生成回退,除"为速度跳过 AI"外不向用户记录任何信息。
 
 ---
 
@@ -126,8 +126,12 @@
 |         ^                   ^                    |
 |         |                   |                    |
 |  +------|-------------------|----------------+   |
-|  |      共享事件总线 (window CustomEvent)      |   |
-|  +-------------------------------------------+   |
+|  |      共享事件总线(类型化 pub/sub)         |   |
+|  |      - 主线程: Phaser 3 内部 bus          |   |
+|  |      - 主线程 <-> Worker: postMessage      |   |
+|  |      - Worker 响应: MessageChannel         |   |
+|  |      - Worker 内部: 自身 bus              |   |
+|  +---------------------------------------------+  |
 |         ^                                       |
 |  +------|-------------------+                   |
 |  | 程序生成核心            |                    |
@@ -181,22 +185,29 @@ graph TB
 
 **卡牌分类**(5 种,每局约 34-45 张):
 
-| 类型 | 数量/局 | 来源 | 用途 |
+| 类型 | 数量/局 | 来源(主 \| 程序生成回退) | 用途 |
 |---|---|---|---|
-| 主题 (Theme) | 1 | LLM | 锁定整局调色板/命名/怪癖 |
-| 物理 (Physics) | 8 | LLM | 可出牌;改变当前关物理(**预烘焙**,出牌时无 LLM) |
-| 道具 (Item) | 20-30 | LLM + procgen | 可拾取;进物品栏 |
-| 角色 (NPC) | 3 | LLM | 定义 NPC 角色 + 性格 |
-| 隐藏 (Hidden) | 2-3 | LLM | 特定融合组合解锁隐藏关 |
+| 主题 (Theme) | 1 | LLM \| 硬编码主题卡组(Phase 1) | 锁定整局调色板/命名/怪癖 |
+| 物理 (Physics) | 8 | LLM \| 硬编码物理表(Phase 1) | 可出牌;改变当前关物理(**预烘焙**,出牌时无 LLM) |
+| 道具 (Item) | 20-30 | LLM (5) + 程序生成 (15-25) | 可拾取;进物品栏 |
+| 角色 (NPC) | 3 | LLM \| 固定对话表(Phase 1) | 定义 NPC 角色 + 性格 |
+| 隐藏 (Hidden) | 2-3 | LLM \| 无(纯程序生成模式隐藏关不可触达) | 特定融合组合解锁隐藏关 |
 
-**融合路径**(融合祭坛):
+**融合路径**(融合祭坛——所有路径都走祭坛;只有路径 1-3 触发 LLM):
 
-| 输入 | 输出 | 示例 |
-|---|---|---|
-| 道具 + 道具 | 道具 | 藤鞭 + 盐水彗星 = 盐水鞭 |
-| 道具 + 物理卡 | 道具(带持久效果) | 箱子 + 月球卡 = 漂浮箱 |
-| **道具 + 任意卡** | **隐藏关** | 箱子 + 任意卡 = 箱子世界(解锁) |
-| 卡 + 卡 | 新卡 | 月卡 + 海卡 = 潮汐卡 |
+| # | 输入 | 输出 | LLM 调用? | 隐藏关触发条件 |
+|---|---|---|---|---|
+| 1 | 道具 + 道具 | FusedItem | 是 | 永不 |
+| 2 | 道具 + 物理卡 | FusedItem(吸收物理效果) | 是 | 仅当物理卡恰为匹配配方的隐藏卡(罕见) |
+| 3 | 道具 + 隐藏卡 | HiddenLevel(或 FusedItem) | 是 | **总是**(配方匹配是定义) |
+| 4 | 道具 + NPC 卡 | FusedItem(吸收角色提示) | 是 | 仅当 NPC 卡恰为匹配配方的隐藏卡(罕见) |
+| 5 | 卡 + 卡 | ComposedItem(无 LLM) | 否 | 永不 |
+
+示例:
+- 路径 1: 藤鞭 + 盐水彗星 = 盐水鞭
+- 路径 2: 箱子 + 月球卡 = 漂浮箱(持久效果)
+- 路径 3: 箱子 + 盐水门卡 = 箱子世界(隐藏关)
+- 路径 5: 月卡 + 海卡 = 潮汐卡(客户端组合)
 
 **"洗牌"隐喻现在变成字面意义**: 每局 = 一副新洗好的牌。LLM 的工作缩为"构建一组协调的 30-40 张主题卡组"。
 
@@ -213,11 +224,11 @@ graph TB
     "ruleQuirk": "All liquids flow upward."
   },
   "itemCards": [
-    { "name": "pickled star", "sprite": "orb_yellow", "behavior": "glows when held" },
-    { "name": "brine comet", "sprite": "whip_blue", "behavior": "splashes on impact" },
-    { "name": "vine whip", "sprite": "whip_red", "behavior": "extends 3 tiles" },
-    { "name": "ferment orb", "sprite": "orb_green", "behavior": "slows nearby liquids" },
-    { "name": "dill drone", "sprite": "shield_gold", "behavior": "follows player for 5s" }
+    { "name": "pickled star", "spriteKey": "orb_yellow", "behavior": "glows when held" },
+    { "name": "brine comet", "spriteKey": "whip_blue", "behavior": "splashes on impact" },
+    { "name": "vine whip", "spriteKey": "whip_red", "behavior": "extends 3 tiles" },
+    { "name": "ferment orb", "spriteKey": "orb_green", "behavior": "slows nearby liquids" },
+    { "name": "dill drone", "spriteKey": "shield_gold", "behavior": "follows player for 5s" }
   ],
   "physicsCards": [
     { "name": "Moon Bounce", "gravity": 200, "restitution": 0.95, "friction": 0.1 },
@@ -253,22 +264,24 @@ graph TB
 
 ### 5.3 道具融合(每关可选,每次融合 1 次 LLM 调用)
 
-玩家拖两张卡到融合祭坛。三条融合路径:
+玩家拖两张卡到融合祭坛。五条融合路径(完整表见 §5.0;触达 LLM 的三条列于此处):
 
 | 输入 | 输出 | LLM 调用? |
 |---|---|---|
-| 道具 + 道具 | 新道具 | 是(调用) |
-| 道具 + 物理卡 | 新道具(带持久效果) | 是(调用) |
-| 道具 + 任意卡 | 隐藏关解锁 | 是(调用,关卡配方提示词) |
-| 卡 + 卡 | 新卡 | 否(客户端按现有卡牌统计可组合) |
+| 道具 + 道具 | 新 FusedItem | 是(调用) |
+| 道具 + 物理卡 | 新 FusedItem(带持久效果) | 是(调用) |
+| 道具 + 隐藏卡(匹配配方) | 隐藏关解锁 | 是(调用,关卡配方分支) |
+| 道具 + NPC 卡 | 新 FusedItem(吸收角色提示) | 是(调用) |
+| 卡 + 卡 | ComposedItem | 否(客户端 `composeCards(a, b)`,按现有卡牌统计可组合) |
 
-**示例: 道具 + 道具**:
+**示例: 道具 + 道具(路径 1)**:
 - 输入: `{ "a": "vine whip", "b": "brine comet" }`
 - LLM 输出:
   ```json
   {
+    "kind": "item",
     "name": "Brine Lash",
-    "sprite": "whip_blue",
+    "spriteKey": "whip_blue",
     "behavior": "extends and splashes on impact, freezing puddles",
     "stackable": false
   }
@@ -288,16 +301,18 @@ graph TB
 
 **可选**: 需要明确拖到祭坛。无意外融合。
 
-### 5.4 NPC 对话(模型加载后持续开启,N 次调用)
+### 5.4 NPC 对话(模型加载后可用,每局 N 次调用)
 
-每个 NPC 从**NPC 卡**(角色 + 性格)取值,该卡在卡组生成时产生。玩家在 NPC 附近按"对话"时,LLM 生成 1-2 句入戏台词,可暗示隐藏卡牌配方或关卡秘密。
+每个 NPC 从**NPC 卡**(角色 + 性格)取值,该卡在卡组生成时产生。玩家靠近 NPC 按 `E` 时,LLM 生成 1-2 句入戏台词,可暗示隐藏卡牌配方或关卡秘密。纯程序生成模式下,固定对话表替代。
 
 **示例**:
 - NPC 卡: role = "cosmic pickle vendor",personality = "rambles about brine, friendly, cryptic"
-- 玩家按对话。
-- LLM 输出(流式): `"Ah, traveler! The brine runs thin near the eastern gate. I left a ferment orb there in '98. Or was it '99? Time pickles everything."`
+- 玩家按 `E`。
+- LLM 输出(WebLLM 支持时流式,否则整段返回): `"Ah, traveler! The brine runs thin near the eastern gate. I left a ferment orb there in '98. Or was it '99? Time pickles everything."`
 
-**持续开启(模型加载后)**: 对话是世界的一部分,不是玩家动作。
+**触发**: 在 NPC 1.5 瓦片内按 `E`。**无惊喜**——不自动弹出、不定时弹窗,触发永远是玩家动作。
+
+**可用(模型加载后)**: 每次对话按 `E` 都生成新台词。无逐次 opt-in 开关。
 
 ### 5.5 隐藏关(由隐藏卡牌配方解锁,每次解锁 1 次调用)
 
@@ -314,9 +329,11 @@ graph TB
 - 奖励是关卡,不是一句话——可重玩,不是一次性。
 - 隐藏卡牌配方被刻意设计得**几乎**像常见融合,玩家通过实验发现。
 
-### 5.6 纯程序生成模式(默认开启此模式时)
+### 5.6 纯程序生成模式(默认模式,AI 需主动开启)
 
-上述 5 个 LLM 机制**全部关闭**。世界、道具、NPC、规则、卡牌全由确定性 Perlin + WFC + 16 个硬编码主题(每个主题是一组手写卡牌)生成。对话变成固定模板字符串。隐藏关不可触达。
+上述 5 个 LLM 机制**全部关闭**。世界、道具、NPC、规则、卡牌全由确定性 Perlin + WFC + 16 个硬编码主题(每个主题是一组手写卡牌;Phase 1 实现 5 个,Phase 3 扩展到 16 个)生成。对话变成固定模板字符串。隐藏关不可触达。
+
+> **命名说明**:"默认 opt-out" 指该模式是默认状态;玩家需要主动 opt-out(切换到 AI 模式)才能开启 LLM。**不是**"默认关闭" 的反义。
 
 ---
 
@@ -389,17 +406,20 @@ interface Deck {
 
 ### 6.3 Level(关卡)
 ```ts
+type Tile = 0 | 1 | 2 | 3 | 4;  // 0=地板,1=墙,2=水,3=草,4=花
+type CardId = string;
+
 interface Level {
   index: number;               // 0..4(+ 已解锁的隐藏关)
   deck: Deck;                  // 引用本局卡组
-  tilemap: string;             // 序列化的 WFC 输出
+  tilemap: number[];           // WFC 瓦片索引数组,长度 = widthTiles * heightTiles
   widthTiles: number;          // 默认 64
   heightTiles: number;         // 默认 48
   spawnedItems: PlacedItem[];  // itemCards 放置到该关
   npcs: PlacedNpc[];           // npcCards 放置到该关
-  activePhysicsCard: Card | null; // 当前激活的物理卡(玩家设置)
+  activePhysicsCardId: string | null; // 引用 deck.physicsCards[i];由玩家设置
   exitTile: { x: number; y: number };
-  unlockedBy?: string;         // 解锁该关的隐藏卡 id(若有)
+  unlockedByHiddenCardId?: string;    // 引用 deck.hiddenCards[i];仅当该关为隐藏关时设置
 }
 
 interface PlacedItem {
@@ -414,7 +434,10 @@ interface PlacedNpc {
 }
 ```
 
-### 6.4 FusedItem(道具+道具 / 道具+卡 融合的产物)
+### 6.4 FusedItem 与 ComposedItem(融合产物)
+
+**FusedItem** —— 由 LLM 融合提示词产出(§5.0 中路径 1-4)。LLM 写入名称、sprite、行为。
+
 ```ts
 interface FusedItem {
   id: string;
@@ -422,12 +445,27 @@ interface FusedItem {
   spriteKey: string;
   behavior: string;
   stackable: boolean;
+  fusedAt: number;             // epoch 毫秒
   fusedFrom: {
-    type: "item+item" | "item+card" | "card+card";
-    inputs: [string, string];  // 卡或道具 id
+    type: "item+item" | "item+card";
+    inputs: [CardId, CardId];  // 引用源卡
   };
 }
 ```
+
+**ComposedItem** —— 由客户端 `composeCards(a, b)` 函数产出(§5.0 中路径 5)。确定性,无 LLM 调用,结果查 `src/core/cardComposition.ts` 表。卡+卡永不产出 FusedItem。
+
+```ts
+interface ComposedItem {
+  id: string;
+  name: string;
+  spriteKey: string;
+  composedFrom: [CardId, CardId]; // 引用源卡
+  composedAt: number;              // epoch 毫秒
+}
+```
+
+**物品栏存储** —— FusedItem 与 ComposedItem 都进 `WorldState.inventory`,与原始 `Card` 道具共存(见 §6.6)。
 
 ### 6.5 HiddenLevel(由隐藏卡配方解锁)
 ```ts
@@ -446,8 +484,10 @@ interface WorldState {
   deck: Deck | null;
   levels: Level[];             // 基础 5 关 + 任意已解锁隐藏关
   currentLevelIndex: number;
-  inventory: FusedItem[];      // 玩家携带的融合道具
+  activePhysicsCardId: string | null;  // 引用 deck.physicsCards[i];跨关卡切换保留
+  inventory: (Card | FusedItem | ComposedItem)[]; // Card 条目必须 type === 'item'
   hand: Card[];                // 当前玩家手中的物理卡(deck.physicsCards 子集)
+  unlockedHiddenLevelIds: string[]; // 引用 levels[] 中本局已解锁的隐藏关
   llmStats: {
     callsThisSession: number;
     totalLatencyMs: number;
@@ -515,7 +555,7 @@ USER: 融合输入:
 - 若有 unlockRecipe 匹配的隐藏卡在场: 产出 HiddenLevel。
 
 JSON 形状(FusedItem):
-{"kind": "item", "name": "...", "sprite": "snake_case from sprite palette", "behavior": "...", "stackable": false}
+{"kind": "item", "name": "...", "spriteKey": "snake_case from sprite palette", "behavior": "...", "stackable": false}
 
 JSON 形状(HiddenLevel):
 {"kind": "level", "levelName": "...", "paletteOverride": ["#...", ...], "ruleQuirk": "..."}
@@ -544,11 +584,11 @@ NPC 卡: {{NPC_CARD_JSON}}
 
 ### 7.5 隐藏关生成
 
-由隐藏卡配方匹配触发。与融合路径 2 共用同一调用(在融合提示词中,当产出 `kind: "level"` 时处理)。无独立提示词。
+由隐藏卡配方匹配触发。与融合路径 3(道具 + 隐藏卡)共用同一调用(在融合提示词中,当产出 `kind: "level"` 时处理)。无独立提示词。
 
-### 7.6 卡 + 卡融合 —— 已移除(客户端处理)
+### 7.6 卡 + 卡组合 —— 客户端处理(无 LLM)
 
-卡 + 卡融合是确定性的,在客户端 `cardSystem.compose(a, b)` 中处理。无 LLM 调用。例: `Moon + Sea` 总是产出 `Tide`(一张带两者效果组合的卡)。合成表在 `src/core/cardComposition.ts`,手写维护。
+卡 + 卡组合是确定性的,在客户端 `cardSystem.composeCards(a, b)` 中处理。无 LLM 调用。例: `Moon + Sea` 总是产出 `Tide`(一张带两者效果组合的卡)。组合表在 `src/core/cardComposition.ts`,手写维护。产出是 `ComposedItem`(不是 `FusedItem` —— 见 §6.4)。
 
 ### 7.7 输出解析
 - 共用 `safeParseLLMJson(raw)` helper 处理 3 个 JSON 形状调用(卡组生成、道具融合、NPC 对话)。
@@ -680,6 +720,7 @@ whimsy/
           SettingsPanel.ts
           CardHandView.ts                           <- 玩家物理卡手牌
           FusionAltarUI.ts                          <- 拖两张卡融合
+          Attribution.ts                            <- About 致谢 tab(TS,不是 TSX)
         utils/
           uuid.ts
           color.ts
@@ -795,13 +836,13 @@ About 模态框"致谢"tab 必须列出每个来源。
 | Phaser examples | MIT | 否 |
 | Inter 字体 | OFL 1.1 | 否 |
 
-**实现位置**:`apps/web/src/components/Attribution.tsx` + `apps/desktop/src/components/Attribution.tsx`。
+**实现位置**:`src/ui/Attribution.ts`(TS,不是 TSX——本项目不用 React)。由游戏内 About 模态框的"致谢" tab 渲染。
 
 ### 10.6 卡牌视觉与资产映射
 
 | 卡牌类型 | 视觉组成 |
 |---|---|
-| `themeCard` | atlas/cards.png 切 frame + Phaser tint 着色(主题色 0-5) |
+| `themeCard` | atlas/cards.png 切 frame + Phaser tint 着色(主题色索引 0-4) |
 | `physicsCard` | 卡背通用图 + icon 取自 atlas/items.png |
 | `itemCard` | atlas/items.png 对应 sprite + 卡牌 frame |
 | `npcCard` | atlas/npcs.png 对应 sprite + 卡牌 frame |
@@ -846,7 +887,7 @@ About 模态框"致谢"tab 必须列出每个来源。
 | 1.2 | Perlin 噪声地形生成 + 瓦片渲染 | 可走、可见的地形 |
 | 1.3 | 玩家控制器(俯视角,WASD + 鼠标瞄准) | 玩家可移动、与墙碰撞 |
 | 1.4 | WFC 瓦片采样器,用于生物群系 + 装饰 | 5 种不同的生物群系变体 |
-| 1.5 | Card 数据模型 + Deck 容器 + 16 个硬编码卡组 | 所有卡牌类型能通过 `Card` 接口 round-trip |
+| 1.5 | Card 数据模型 + Deck 容器 + 5 个硬编码卡组(每生物群系 1 个;Phase 3 扩展到 16) | 所有卡牌类型能通过 `Card` 接口 round-trip |
 | 1.6 | CardEntity(地面卡牌) + 拾取 + 物品栏(最多 6 槽) | 拾起卡牌,HUD 可见 |
 | 1.7 | NPC 实体 + 接近提示 + 固定对话表 | 与 NPC 对话,看到模板台词 |
 | 1.8 | 关卡出口触发器 + 5 关局循环 | 端到端打通 5 关 |
