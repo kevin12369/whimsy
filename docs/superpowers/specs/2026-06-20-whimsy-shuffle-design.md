@@ -612,10 +612,30 @@ whimsy/
       index.html
       public/
         sprites/                              <- all PNG/sprite assets
-          tiles/
-          items/
-          npcs/
-          ui/
+          atlas/                              <- Phaser single-shot preload (atlas + json)
+            cards.png + cards.json
+            items.png + items.json
+            npcs.png + npcs.json
+            tiles.png + tiles.json
+          raw/                                <- un-paked source images (dev only)
+            tiles/
+            items/
+            npcs/
+            ui/
+            vfx/
+        sfx/                                 <- short SFX (preload, <500KB total)
+          draw.wav
+          place.wav
+          fuse.wav
+          reveal.wav
+          hint.wav
+          error.wav
+        bgm/                                 <- themed BGM (lazy load, 1 per theme)
+          forest.ogg
+          ocean.ogg
+          dungeon.ogg
+          scifi.ogg
+          default.ogg
         favicon.ico
       src/
         main.ts                               <- entry point
@@ -623,6 +643,7 @@ whimsy/
           model.ts                            <- model registry
           prompts.ts                          <- prompt templates
           constants.ts
+          assets.ts                           <- asset manifest (URL + license + sha256)
         core/
           eventBus.ts                         <- typed pub/sub
           worldState.ts                       <- WorldState container
@@ -664,6 +685,7 @@ whimsy/
         utils/
           uuid.ts
           color.ts
+          assetLoader.ts                     <- Phaser loader wrapper (atlas/image/sfx/bgm)
       tests/
         procgen/
         llm/
@@ -676,7 +698,146 @@ whimsy/
 
 ---
 
-## 10. Implementation Phases
+## 10. Assets & Resource Libraries
+
+### 10.1 Selection principles
+
+Whimsy Shuffle is an "AI-randomly-generated sandbox" — every run has a different theme, tile set, and visual style. **Visual consistency doesn't matter**; what matters is **safe licensing + stable sources + sufficient volume**.
+
+| Principle | Why |
+|---|---|
+| **CC0 first** | Public domain, no attribution, no commercial-use review |
+| **Royalty-Free fallback** | Name-your-price but commercial-OK — only for card-specialized needs |
+| **Avoid GPL family** | Copyleft is incompatible with permissive distribution |
+| **Avoid AI-generated images** | Training-data provenance is unclear, copyright unclear |
+| **Inconsistent style = advantage** | Each run draws tiles / BGM from different sources; player never notices "all Kenney" |
+
+### 10.2 Optimal asset sources (category mapping)
+
+| Asset category | Recommended source | License | Fallback |
+|---|---|---|---|
+| **Card frame / back** | [cafeDraw Fantasy Card Assets](https://cafedraw.itch.io/fantasy-card-assets) | Royalty-Free | — |
+| **Card UI / table / animations** | [Praan Card Game 2D UI](https://praan.itch.io/cardgame2d) | Royalty-Free | — |
+| **Item sprites** | [Kenney](https://kenney.nl/assets) | CC0 | freegamesprites.com (CC0) |
+| **NPC characters** | Kenney character packs | CC0 | freegamesprites.com (CC0) |
+| **Themed tile sets** | OpenGameArt themed packs (per-pack license audit) | CC0 / CC-BY | Kenney Platformer (CC0) |
+| **Particles / VFX** | Kenney Light Masks | CC0 | OpenGameArt particles (mixed) |
+| **UI buttons / panels** | Kenney UI Pack + UI Expansion | CC0 | — |
+| **SFX** (6 core) | [Mixkit Game SFX](https://mixkit.co/free-sound-effects/game/) | Mixkit License | Kenney Audio (CC0) / Pixabay (no attribution) |
+| **BGM** (themed loops) | [Pixabay Music](https://pixabay.com/music/) | Pixabay License (no attribution) | — |
+| **English font** | [Inter](https://rsms.me/inter/) via Google Fonts | OFL 1.1 | — |
+| **Chinese font** | System fallback (PingFang SC / Microsoft YaHei) | system | — |
+| **Phase 1 placeholders** | [phaserjs/examples](https://github.com/phaserjs/examples) `public/assets/` | MIT | — |
+
+**Relation to §4 architecture**: itch.io is both a deployment target and an asset source (cafeDraw / Praan / KayKit all live on itch.io). GitHub Pages and nginx only host; they do not provide assets.
+
+### 10.3 Resource directory layout (§9 supplement)
+
+```
+public/
+  sprites/
+    atlas/                                 <- Phaser single-shot preload
+      cards.json + cards.png               <- 64×96 frame, 16 cols
+      items.json + items.png               <- 32×32 frame, 32 cols
+      npcs.json + npcs.png                 <- 64×64 frame, 16 cols
+      tiles.json + tiles.png               <- 16×16 frame, 32 cols
+    raw/                                   <- un-paked source images (dev only)
+      tiles/
+      items/
+      npcs/
+      ui/
+      vfx/
+  sfx/                                     <- short SFX (preload)
+    draw.wav
+    place.wav
+    fuse.wav
+    reveal.wav
+    hint.wav
+    error.wav
+  bgm/                                     <- themed BGM (lazy load)
+    forest.ogg
+    ocean.ogg
+    dungeon.ogg
+    scifi.ogg
+    default.ogg
+  favicon.ico
+src/
+  config/
+    assets.ts                              <- asset manifest (URL + license + sha256)
+  core/
+    assetLoader.ts                         <- Phaser loader wrapper
+  ui/
+    Attribution.tsx                        <- About "credits" tab
+```
+
+### 10.4 Loading strategy
+
+| Strategy | Rule |
+|---|---|
+| **atlas single-shot preload** | BootScene uses `this.load.atlas('cards', 'atlas/cards.png', 'atlas/cards.json')` — one atlas load, not 100 single-image requests |
+| **Per-theme lazy load** | GameScene.start loads only the selected theme's tile + BGM |
+| **BGM on demand** | First entry to a themed level fetches `bgm/{theme}.ogg`; avoid 16 themes × 3MB blocking first paint |
+| **SFX full preload** | 6 SFX total <500KB, preload in BootScene |
+| **Non-blocking font** | `<link rel="preload" as="style" href="Inter">` + `font-display: swap`; first paint uses fallback |
+| **HTTP cache** | Vite emits `[hash].[ext]`; `Cache-Control: public, max-age=31536000, immutable` |
+
+### 10.5 License credits (About page required)
+
+The About modal's "Credits" tab must list every source.
+
+| Source | License | Attribution required |
+|---|---|---|
+| Kenney | CC0 | No |
+| freegamesprites.com | CC0 | No |
+| cafeDraw Fantasy Card | Royalty-Free | Yes (optional) |
+| Praan Card Game 2D UI | Royalty-Free | Yes (optional) |
+| Mixkit SFX | Mixkit License | Yes (About link) |
+| Pixabay Music/SFX | Pixabay License | No (recommended) |
+| OpenGameArt themed tiles | CC0 / CC-BY | Depends on pack |
+| Phaser examples | MIT | No |
+| Inter font | OFL 1.1 | No |
+
+**Implementation location**: `apps/web/src/components/Attribution.tsx` + `apps/desktop/src/components/Attribution.tsx`.
+
+### 10.6 Card visuals vs asset mapping
+
+| Card type | Visual composition |
+|---|---|
+| `themeCard` | frame sliced from atlas/cards.png + Phaser tint (theme color 0-5) |
+| `physicsCard` | generic card back + icon from atlas/items.png |
+| `itemCard` | matching sprite from atlas/items.png + card frame |
+| `npcCard` | matching sprite from atlas/npcs.png + card frame |
+| `hiddenCard` | golden particle effect on card back + hidden icon |
+
+**Key design**: LLM-generated "card name / description" only renders in the text area on the card front; **it does NOT map to a sprite**. Sprites are a pre-baked finite pool; LLM can only pick from existing sprites. This avoids the awkward "LLM outputs a dragon card but we have no dragon sprite" case.
+
+### 10.7 Explicitly not doing
+
+- **No** AI-generated images (SD / DALL-E / Midjourney) — training-data provenance unclear
+- **No** hand-drawing pixel art — not a core value, too time-consuming
+- **No** buying commercial sprite packs — budget is 0
+- **No** sprite recolor variants — use Phaser tint at runtime, zero asset cost
+- **No** 3D models — 2D sandbox positioning
+- **No** GPL-licensed assets — copyleft conflicts with permissive distribution
+
+### 10.8 Asset pipeline tasks (cross-phase)
+
+| Task | Phase | Description | Asset size |
+|---|---|---|---|
+| Asset manifest | 1 | `src/config/assets.ts` lists every URL + license + sha256 | — |
+| Download core packs | 1 | Kenney UI Pack + cafeDraw cards + Mixkit 6 SFX + Phaser examples placeholders | ~3MB |
+| Sprite atlas build | 1 | `free-tex-packer` produces atlas + JSON | ~6MB |
+| assetLoader.ts | 1 | Phaser loader wrapper, supports atlas / single-image / SFX / BGM | — |
+| Placeholder swap | 1 | Replace Phaser examples `dude/star/bomb` with Kenney character + item | — |
+| Attribution page | 1 | Add "Credits" tab to About modal, render §10.5 table | — |
+| SFX integration | 2 | Wire 6 SFX into eventBus, triggered by play | — |
+| Themed tile + BGM | 2 | Pick 4-6 themed packs from OpenGameArt + match BGM from Pixabay, lazy load | ~10MB |
+| Lazy BGM loader | 2 | `bgm/{theme}.ogg` on-demand fetch + loading state | — |
+| Theme expansion | 3 | Map all 16 themes to tile + BGM | ~20MB |
+
+---
+
+## 11. Implementation Phases
 
 ### Phase 1 — Pure Procgen (no LLM, no WebGPU required)
 **Goal**: A fully playable, fun sandbox with zero AI dependency. The deck is built from 16 hardcoded theme bundles. All card mechanics work without LLM.
@@ -733,7 +894,7 @@ whimsy/
 
 ---
 
-## 11. Success Criteria
+## 12. Success Criteria
 
 ### Phase 1 done means
 - A new player can load the page and play a 5-level session in under 5 minutes.
@@ -765,7 +926,7 @@ whimsy/
 
 ---
 
-## 12. Explicitly Out of Scope
+## 13. Explicitly Out of Scope
 
 This is a local standalone game. The following are off-limits because they would contradict that core shape:
 

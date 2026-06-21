@@ -610,10 +610,30 @@ whimsy/
       index.html
       public/
         sprites/                                    <- 全部 PNG / 精灵资源
-          tiles/
-          items/
-          npcs/
-          ui/
+          atlas/                                    <- Phaser 一次性 preload 的 atlas + json
+            cards.png + cards.json
+            items.png + items.json
+            npcs.png + npcs.json
+            tiles.png + tiles.json
+          raw/                                      <- 打包前的单图(开发用)
+            tiles/
+            items/
+            npcs/
+            ui/
+            vfx/
+        sfx/                                       <- 短音效(预加载,<500KB 总)
+          draw.wav
+          place.wav
+          fuse.wav
+          reveal.wav
+          hint.wav
+          error.wav
+        bgm/                                       <- 主题 BGM(懒加载,每主题 1 首)
+          forest.ogg
+          ocean.ogg
+          dungeon.ogg
+          scifi.ogg
+          default.ogg
         favicon.ico
       src/
         main.ts                                     <- 入口
@@ -621,6 +641,7 @@ whimsy/
           model.ts                                  <- 模型注册表
           prompts.ts                                <- 提示词模板
           constants.ts
+          assets.ts                                 <- asset manifest(URL + license + sha256)
         core/
           eventBus.ts                               <- 类型化 pub/sub
           worldState.ts                             <- WorldState 容器
@@ -662,6 +683,7 @@ whimsy/
         utils/
           uuid.ts
           color.ts
+          assetLoader.ts                           <- Phaser loader 包装(atlas/单图/SFX/BGM)
       tests/
         procgen/
         llm/
@@ -674,7 +696,146 @@ whimsy/
 
 ---
 
-## 10. 实施阶段
+## 10. 资产与资源库
+
+### 10.1 选型原则
+
+Whimsy Shuffle 是"AI 随机生成沙盒",每局主题、tile、风格都不同。**视觉一致性不重要**,**许可安全 + 来源稳定 + 资产量充足**才是关键。
+
+| 原则 | 说明 |
+|---|---|
+| **许可优先 CC0** | 公共领域,免署名、免商用审查 |
+| **备选 Royalty-Free** | NY Price 但允许商用 — 仅卡牌专项用 |
+| **回避 GPL 系列** | 传染性许可,与商用发布冲突 |
+| **回避 AI 生成图** | 训练数据来源不明,版权存疑 |
+| **风格不统一 = 优势** | 每局从不同源选 tile / BGM,玩家感受不到"全是 Kenney 风" |
+
+### 10.2 最优资产来源(分类映射)
+
+| 资产类别 | 推荐来源 | 许可 | 备选 |
+|---|---|---|---|
+| **卡牌 frame / 卡背** | [cafeDraw Fantasy Card Assets](https://cafedraw.itch.io/fantasy-card-assets) | Royalty-Free | — |
+| **卡牌 UI / 牌桌 / 动画** | [Praan Card Game 2D UI](https://praan.itch.io/cardgame2d) | Royalty-Free | — |
+| **道具 sprite** | [Kenney](https://kenney.nl/assets) | CC0 | freegamesprites.com (CC0) |
+| **NPC 角色** | Kenney 角色包 | CC0 | freegamesprites.com (CC0) |
+| **主题 tile set** | OpenGameArt 主题包(逐个 license 审计) | CC0 / CC-BY | Kenney Platformer (CC0) |
+| **粒子 / VFX** | Kenney Light Masks | CC0 | OpenGameArt particles (混合) |
+| **UI 按钮 / 面板** | Kenney UI Pack + UI Expansion | CC0 | — |
+| **SFX**(6 个核心) | [Mixkit Game SFX](https://mixkit.co/free-sound-effects/game/) | Mixkit License | Kenney Audio (CC0) / Pixabay (免署名) |
+| **BGM**(主题 loop) | [Pixabay Music](https://pixabay.com/music/) | Pixabay License(免署名) | — |
+| **英文字体** | [Inter](https://rsms.me/inter/) via Google Fonts | OFL 1.1 | — |
+| **中文字体** | 系统 fallback(PingFang SC / 微软雅黑) | 系统 | — |
+| **Phase 1 占位** | [phaserjs/examples](https://github.com/phaserjs/examples) `public/assets/` | MIT | — |
+
+**与 §4 架构的关系**:itch.io 同时是部署目标和资产来源(cafeDraw / Praan / KayKit 都在 itch.io),GitHub Pages 和 nginx 不提供资产,只承载。
+
+### 10.3 资源目录结构(§9 补充)
+
+```
+public/
+  sprites/
+    atlas/                                   <- Phaser 一次性 preload
+      cards.json + cards.png                 <- 64×96 frame,16 列
+      items.json + items.png                 <- 32×32 frame,32 列
+      npcs.json + npcs.png                   <- 64×64 frame,16 列
+      tiles.json + tiles.png                 <- 16×16 frame,32 列
+    raw/                                     <- 打包前的单图(开发用)
+      tiles/
+      items/
+      npcs/
+      ui/
+      vfx/
+  sfx/                                       <- 短音效(预加载)
+    draw.wav
+    place.wav
+    fuse.wav
+    reveal.wav
+    hint.wav
+    error.wav
+  bgm/                                       <- 主题 BGM(懒加载)
+    forest.ogg
+    ocean.ogg
+    dungeon.ogg
+    scifi.ogg
+    default.ogg
+  favicon.ico
+src/
+  config/
+    assets.ts                                <- asset manifest(URL + license + sha256)
+  core/
+    assetLoader.ts                           <- Phaser loader 包装
+  ui/
+    Attribution.tsx                          <- About 致谢 tab
+```
+
+### 10.4 加载策略
+
+| 策略 | 规则 |
+|---|---|
+| **atlas 一次性 preload** | BootScene 用 `this.load.atlas('cards', 'atlas/cards.png', 'atlas/cards.json')` 单 atlas 加载,避免 100 个单图请求 |
+| **分主题懒加载** | GameScene.start 时按 selectedTheme 加载对应 tile + BGM |
+| **BGM 按需** | 首次进入主题关才 fetch `bgm/{theme}.ogg`,避免 16 主题 × 3MB 全阻塞首屏 |
+| **SFX 全量预加载** | 6 个 SFX 总 <500KB,BootScene 一次性 preload |
+| **字体非阻塞** | `<link rel="preload" as="style" href="Inter">` + `font-display: swap`,首屏用 fallback |
+| **HTTP 缓存** | Vite 产 `[hash].[ext]`,`Cache-Control: public, max-age=31536000, immutable` |
+
+### 10.5 License 致谢(About 页必填)
+
+About 模态框"致谢"tab 必须列出每个来源。
+
+| 来源 | 许可 | 署名要求 |
+|---|---|---|
+| Kenney | CC0 | 否 |
+| freegamesprites.com | CC0 | 否 |
+| cafeDraw Fantasy Card | Royalty-Free | 是(可选) |
+| Praan Card Game 2D UI | Royalty-Free | 是(可选) |
+| Mixkit SFX | Mixkit License | 是(About 链接) |
+| Pixabay Music/SFX | Pixabay License | 否(强烈推荐) |
+| OpenGameArt 主题 tile | CC0 / CC-BY | 视具体包 |
+| Phaser examples | MIT | 否 |
+| Inter 字体 | OFL 1.1 | 否 |
+
+**实现位置**:`apps/web/src/components/Attribution.tsx` + `apps/desktop/src/components/Attribution.tsx`。
+
+### 10.6 卡牌视觉与资产映射
+
+| 卡牌类型 | 视觉组成 |
+|---|---|
+| `themeCard` | atlas/cards.png 切 frame + Phaser tint 着色(主题色 0-5) |
+| `physicsCard` | 卡背通用图 + icon 取自 atlas/items.png |
+| `itemCard` | atlas/items.png 对应 sprite + 卡牌 frame |
+| `npcCard` | atlas/npcs.png 对应 sprite + 卡牌 frame |
+| `hiddenCard` | 卡背金光特效(粒子) + 隐藏 icon |
+
+**关键设计**:LLM 生成的"卡牌名称/描述"只显示在卡牌正面文字栏,**不映射到 sprite**。sprite 是预烘焙的有限池,LLM 只能从已存在的 sprite 中挑选。这避免了"LLM 输出 dragon 卡,我们没 dragon sprite"的尴尬。
+
+### 10.7 明确不做的
+
+- **不**使用 AI 生成的图片(SD / DALL-E / Midjourney),训练数据来源不明
+- **不**自己绘制像素艺术(非核心价值,耗时长)
+- **不**购买商业 sprite pack(预算 0)
+- **不**做 sprite 换色变体(用 Phaser tint 运行时调色,0 资产成本)
+- **不**做 3D 模型(2D 沙盒定位)
+- **不**使用 GPL 许可的资产(传染性与商用发布冲突)
+
+### 10.8 资产 Pipeline 任务(横跨所有 Phase)
+
+| 任务 | Phase | 描述 | 资产量 |
+|---|---|---|---|
+| Asset manifest | 1 | `src/config/assets.ts` 列出所有 URL + license + sha256 | — |
+| 下载核心包 | 1 | Kenney UI Pack + cafeDraw 卡牌 + Mixkit 6 SFX + Phaser examples 占位 | ~3MB |
+| Sprite atlas 打包 | 1 | `free-tex-packer` 打成 atlas + JSON | ~6MB |
+| assetLoader.ts | 1 | Phaser loader 包装,支持 atlas / 单图 / SFX / BGM 四种 type | — |
+| 占位 sprite 替换 | 1 | Phaser examples `dude/star/bomb` 换 Kenney 角色 + 道具 | — |
+| Attribution 页 | 1 | About modal 加 "致谢" tab,渲染 §10.5 表格 | — |
+| SFX 接入 | 2 | 6 个 SFX 接入 eventBus,play 触发 | — |
+| 主题 tile + BGM | 2 | OpenGameArt 选 4-6 个主题 pack + Pixabay 配 BGM,按需加载 | ~10MB |
+| lazy BGM 加载 | 2 | `bgm/{theme}.ogg` 按需 fetch + loading 状态 | — |
+| 主题变体扩展 | 3 | 16 主题全部映射到 tile + BGM | ~20MB |
+
+---
+
+## 11. 实施阶段
 
 ### Phase 1 — 纯程序生成(无 LLM,无 WebGPU 要求)
 **目标**: 完全可玩、有趣的沙盒,零 AI 依赖。卡组由 16 个硬编码主题包构建。所有卡牌机制无需 LLM 即可运行。
@@ -731,7 +892,7 @@ whimsy/
 
 ---
 
-## 11. 成功标准
+## 12. 成功标准
 
 ### Phase 1 完成意味着
 - 新玩家可在 5 分钟内加载页面、玩一局 5 关。
@@ -763,7 +924,7 @@ whimsy/
 
 ---
 
-## 12. 明确不在范围内
+## 13. 明确不在范围内
 
 这是一款本地独立游戏。以下内容因与该核心形态相悖而不做:
 
