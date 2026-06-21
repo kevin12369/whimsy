@@ -43,16 +43,16 @@ export class GameScene extends Phaser.Scene {
       }
     }
     this.exitPos = { x: this.w - 2, y: this.h - 2 };
-    this.drawTilemap();
-    this.player = this.add.rectangle(this.tileSize * 2, this.tileSize * 2, 20, 20, 0xffffff);
-    this.keys = this.input.keyboard!.createCursorKeys();
-    this.wasd = this.input.keyboard!.addKeys('W,A,S,D') as Record<string, Phaser.Input.Keyboard.Key>;
-    this.hudText = this.add.text(8, 8, `Level ${this.session.currentLevelIndex + 1}/${this.session.maxLevels}`, { color: '#fff' });
-  }
-
-  private drawTilemap() {
     const offsetX = (1280 - this.w * this.tileSize) / 2;
     const offsetY = (720 - this.h * this.tileSize) / 2;
+    this.drawTilemap(offsetX, offsetY);
+    this.player = this.add.rectangle(offsetX + this.tileSize * 2, offsetY + this.tileSize * 2, 20, 20, 0xffffff);
+    this.keys = this.input.keyboard!.createCursorKeys();
+    this.wasd = this.input.keyboard!.addKeys('W,A,S,D') as Record<string, Phaser.Input.Keyboard.Key>;
+    this.hudText = this.add.text(offsetX + 8, offsetY + 8, `Level ${this.session.currentLevelIndex + 1}/${this.session.maxLevels}`, { color: '#fff' });
+  }
+
+  private drawTilemap(offsetX: number, offsetY: number) {
     for (let y = 0; y < this.h; y++) {
       for (let x = 0; x < this.w; x++) {
         const t = this.tilemap[y * this.w + x]!;
@@ -61,11 +61,6 @@ export class GameScene extends Phaser.Scene {
       }
     }
     this.add.rectangle(offsetX + this.exitPos.x * this.tileSize, offsetY + this.exitPos.y * this.tileSize, this.tileSize, this.tileSize, 0xffff00).setOrigin(0);
-    // Re-position player + HUD relative to the centered map.
-    this.player.x = offsetX + this.tileSize * 2;
-    this.player.y = offsetY + this.tileSize * 2;
-    this.hudText.x = offsetX + 8;
-    this.hudText.y = offsetY + 8;
   }
 
   override update(_t: number, dt: number) {
