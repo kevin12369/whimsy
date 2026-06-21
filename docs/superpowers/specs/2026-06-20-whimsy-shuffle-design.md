@@ -84,18 +84,18 @@ If the player closes the tab during model load, no state is lost. If they refres
 | Phase | Player action | System response |
 |---|---|---|
 | Start | Click "New Shuffle" | LLM generates session theme (1 call, ~3-5s) |
-| L1 | Walk around, discover items, talk to NPC | LLM-generated NPC dialogue streams in |
-| L1 end | Touch level exit | Per-level hidden easter egg generated (1 call, ~2-3s) |
-| L2 | Open perturbation panel, type "spicy" | Physics rules mutated for this level (1 call, ~3-5s) |
-| L3 | Drag two items onto fusion altar | Item fusion result (1 call, ~3-5s), on opt-in |
-| L4 | Free play | Optional surprise LLM moment |
+| L1 | Walk around, discover items, talk to NPC (press `E` near them) | LLM generates a 1-2 sentence line on demand (1 call per talk, ~2-4s) |
+| L1 end | Touch level exit | Advance to next level (0 LLM calls) |
+| L2 | Drag a physics card onto the active level | Gravity / friction / restitution change live (0 LLM calls; card pre-baked at deck time) |
+| L3 | Drag two item cards onto fusion altar | Item fusion result (1 call, ~3-5s), on opt-in |
+| L4 | Free play | No LLM activity; pure exploration |
 | L5 end | Touch final exit | Session summary, total LLM calls shown |
 
-Total LLM calls: **5-10 per session**, **30-60s total** on RTX 3060.
+Total LLM calls: **5-10 per session** in AI mode, **0 calls** in Pure Procgen mode. **30-60s total** on RTX 3060.
 
 ### 3.3 Ongoing Play
 
-- After one session, the player can "Reshuffle" (new session, new theme) or "Continue" (keep theme, new levels).
+- After one session, the player can "Reshuffle" (new session, new theme) or "Continue" (keep theme, re-roll tilemaps with a fresh WFC seed; same theme cards retained).
 - Settings panel exposes: model choice, LLM on/off per mechanic, reset model cache.
 - No save slots. Each session is ephemeral by design — the fun is in the shuffle.
 
@@ -126,8 +126,12 @@ Total LLM calls: **5-10 per session**, **30-60s total** on RTX 3060.
 |         ^                   ^                    |
 |         |                   |                    |
 |  +------|-------------------|----------------+   |
-|  |      Shared Event Bus (window CustomEvent) |  |
-|  +-------------------------------------------+   |
+|  |      Shared Event Bus (typed pub/sub)     |   |
+|  |      - Main: Phaser 3 internal bus        |   |
+|  |      - Main <-> Worker: postMessage       |   |
+|  |      - Worker reply: MessageChannel       |   |
+|  |      - Worker-internal: own bus           |   |
+|  +---------------------------------------------+  |
 |         ^                                       |
 |  +------|-------------------+                   |
 |  | Procedural Core           |                  |
@@ -181,22 +185,29 @@ The whole game runs on **cards**. Every interactive element in a session — the
 
 **Card taxonomy** (5 types, ~34-45 cards per session):
 
-| Type | Count / session | Source | Effect |
+| Type | Count / session | Source (Primary \| Procgen fallback) | Effect |
 |---|---|---|---|
-| Theme | 1 | LLM | Locks palette, naming, quirk for the whole session |
-| Physics | 8 | LLM | Playable; mutates active level physics (pre-baked, no LLM at play time) |
-| Item | 20-30 | LLM + procgen | Pickup-able; inventory item |
-| NPC | 3 | LLM | Defines an NPC's role + personality |
-| Hidden | 2-3 | LLM | Specific fusion combos unlock hidden levels |
+| Theme | 1 | LLM \| Hardcoded theme deck (Phase 1) | Locks palette, naming, quirk for the whole session |
+| Physics | 8 | LLM \| Hardcoded physics table (Phase 1) | Playable; mutates active level physics (pre-baked, no LLM at play time) |
+| Item | 20-30 | LLM (5) + procgen (15-25) | Pickup-able; inventory item |
+| NPC | 3 | LLM \| Fixed dialogue table (Phase 1) | Defines an NPC's role + personality |
+| Hidden | 2-3 | LLM \| None (hidden levels unreachable in Pure Procgen) | Specific fusion combos unlock hidden levels |
 
-**Fusion paths** (fusion altar):
+**Fusion paths** (fusion altar — all paths go through the altar; only paths 1-3 use LLM):
 
-| Inputs | Output | Example |
-|---|---|---|
-| Item + Item | Item | vine whip + brine comet = Brine Lash |
-| Item + Physics card | Item (with persistent effect) | Box + Moon card = Floating Box |
-| **Item + any card** | **Hidden level** | Box + random card = Box World (unlocks) |
-| Card + Card | New card | Moon + Sea = Tide card |
+| # | Inputs | Output | LLM call? | Hidden level trigger |
+|---|---|---|---|---|
+| 1 | Item + Item | FusedItem | Yes | Never |
+| 2 | Item + Physics card | FusedItem (absorbs physics effect) | Yes | Only if physics card is the matching hidden recipe (rare) |
+| 3 | Item + Hidden card | HiddenLevel (or FusedItem) | Yes | **Always** (recipe match by definition) |
+| 4 | Item + NPC card | FusedItem (absorbs role hint) | Yes | Only if NPC card is the matching hidden recipe (rare) |
+| 5 | Card + Card | ComposedItem (no LLM) | No | Never |
+
+Worked examples:
+- Path 1: vine whip + brine comet = Brine Lash
+- Path 2: Box + Moon card = Floating Box (persistent effect)
+- Path 3: Box + Brine Gate card = Box World (hidden level)
+- Path 5: Moon + Sea = Tide card (client-side composition)
 
 **The shuffle metaphor is now literal**: each session = a new shuffled deck. The LLM's job shrinks to "build a coherent 30-40 card deck that fits the theme".
 
@@ -213,11 +224,11 @@ When a new session starts, the LLM is asked to build the entire deck in one call
     "ruleQuirk": "All liquids flow upward."
   },
   "itemCards": [
-    { "name": "pickled star", "sprite": "orb_yellow", "behavior": "glows when held" },
-    { "name": "brine comet", "sprite": "whip_blue", "behavior": "splashes on impact" },
-    { "name": "vine whip", "sprite": "whip_red", "behavior": "extends 3 tiles" },
-    { "name": "ferment orb", "sprite": "orb_green", "behavior": "slows nearby liquids" },
-    { "name": "dill drone", "sprite": "shield_gold", "behavior": "follows player for 5s" }
+    { "name": "pickled star", "spriteKey": "orb_yellow", "behavior": "glows when held" },
+    { "name": "brine comet", "spriteKey": "whip_blue", "behavior": "splashes on impact" },
+    { "name": "vine whip", "spriteKey": "whip_red", "behavior": "extends 3 tiles" },
+    { "name": "ferment orb", "spriteKey": "orb_green", "behavior": "slows nearby liquids" },
+    { "name": "dill drone", "spriteKey": "shield_gold", "behavior": "follows player for 5s" }
   ],
   "physicsCards": [
     { "name": "Moon Bounce", "gravity": 200, "restitution": 0.95, "friction": 0.1 },
@@ -253,22 +264,24 @@ Player opens their hand of **physics cards** (drawn from the session deck, seeab
 
 ### 5.3 Item Fusion (opt-in per level, 1 LLM call per fusion)
 
-Player drags two cards onto the fusion altar. Three fusion paths:
+Player drags two cards onto the fusion altar. Five fusion paths (see §5.0 for the full table; the three that hit the LLM are listed here):
 
 | Inputs | Output | LLM call? |
 |---|---|---|
-| Item + Item | New item | Yes (call) |
-| Item + Physics card | New item (with persistent effect) | Yes (call) |
-| Item + any card | Hidden level unlock | Yes (call, level-recipe prompt) |
-| Card + Card | New card | No (composable client-side from existing card stats) |
+| Item + Item | New FusedItem | Yes (call) |
+| Item + Physics card | New FusedItem (with persistent effect) | Yes (call) |
+| Item + Hidden card (matching recipe) | HiddenLevel unlock | Yes (call, level-recipe branch) |
+| Item + NPC card | New FusedItem (absorbs role hint) | Yes (call) |
+| Card + Card | ComposedItem | No (client-side `composeCards(a, b)` from existing card stats) |
 
-**Example: Item + Item**:
+**Example: Item + Item (path 1)**:
 - Input: `{ "a": "vine whip", "b": "brine comet" }`
 - LLM output:
   ```json
   {
+    "kind": "item",
     "name": "Brine Lash",
-    "sprite": "whip_blue",
+    "spriteKey": "whip_blue",
     "behavior": "extends and splashes on impact, freezing puddles",
     "stackable": false
   }
@@ -288,16 +301,18 @@ Player drags two cards onto the fusion altar. Three fusion paths:
 
 **Opt-in**: requires explicit drag onto altar. No surprise fusions.
 
-### 5.4 NPC Dialogue (always on if model loaded, N calls)
+### 5.4 NPC Dialogue (available when model loaded, N calls per session)
 
-Each NPC draws from an **NPC card** (role + personality) generated at deck time. When the player presses "talk" near an NPC, the LLM generates a 1-2 sentence in-character line, optionally hinting at a hidden card recipe or level secret.
+Each NPC draws from an **NPC card** (role + personality) generated at deck time. When the player presses `E` near an NPC, the LLM generates a 1-2 sentence in-character line, optionally hinting at a hidden card recipe or level secret. In Pure Procgen mode, a fixed dialogue table substitutes.
 
 **Example**:
 - NPC card: role = "cosmic pickle vendor", personality = "rambles about brine, friendly, cryptic"
-- Player presses talk.
-- LLM output (streamed): `"Ah, traveler! The brine runs thin near the eastern gate. I left a ferment orb there in '98. Or was it '99? Time pickles everything."`
+- Player presses `E`.
+- LLM output (streamed if WebLLM supports it, else batched): `"Ah, traveler! The brine runs thin near the eastern gate. I left a ferment orb there in '98. Or was it '99? Time pickles everything."`
 
-**Always on (when model is loaded)**: dialogue is part of the world, not a player action.
+**Trigger**: press `E` within 1.5 tiles of an NPC. **No surprise** — no auto-popup, no scheduled dialogue. The trigger is always a player action.
+
+**Available (when model is loaded)**: every talk press generates a fresh line. No per-call opt-in toggle.
 
 ### 5.5 Hidden Levels (unlocked by hidden card recipes, 1 call per unlock)
 
@@ -390,17 +405,20 @@ interface Deck {
 
 ### 6.3 Level
 ```ts
+type Tile = 0 | 1 | 2 | 3 | 4;  // 0=floor, 1=wall, 2=water, 3=grass, 4=flower
+type CardId = string;
+
 interface Level {
   index: number;               // 0..4 (+ unlocked hidden levels)
   deck: Deck;                  // reference to session deck
-  tilemap: string;             // serialized WFC output
+  tilemap: number[];           // WFC tile indices, length = widthTiles * heightTiles
   widthTiles: number;          // default 64
   heightTiles: number;         // default 48
   spawnedItems: PlacedItem[];  // itemCards placed in this level
   npcs: PlacedNpc[];           // npcCards placed in this level
-  activePhysicsCard: Card | null; // physics card currently active (set by player)
+  activePhysicsCardId: string | null; // ref to deck.physicsCards[i]; set by player
   exitTile: { x: number; y: number };
-  unlockedBy?: string;         // hidden card id that unlocked this level (if any)
+  unlockedByHiddenCardId?: string;    // ref to deck.hiddenCards[i]; only set if this is a hidden level
 }
 
 interface PlacedItem {
@@ -415,7 +433,9 @@ interface PlacedNpc {
 }
 ```
 
-### 6.4 FusedItem (result of an item+item or item+card fusion)
+### 6.4 FusedItem and ComposedItem (fusion products)
+
+**FusedItem** — produced by the LLM fusion prompt (paths 1-4 in §5.0). The LLM writes the name, sprite, and behavior.
 
 ```ts
 interface FusedItem {
@@ -424,12 +444,27 @@ interface FusedItem {
   spriteKey: string;
   behavior: string;
   stackable: boolean;
+  fusedAt: number;             // epoch ms
   fusedFrom: {
-    type: "item+item" | "item+card" | "card+card";
-    inputs: [string, string];  // card or item ids
+    type: "item+item" | "item+card";
+    inputs: [CardId, CardId];  // refs to source cards
   };
 }
 ```
+
+**ComposedItem** — produced by the client-side `composeCards(a, b)` function (path 5 in §5.0). Deterministic; no LLM call; output is looked up in `src/core/cardComposition.ts`. Card+Card never produces a FusedItem.
+
+```ts
+interface ComposedItem {
+  id: string;
+  name: string;
+  spriteKey: string;
+  composedFrom: [CardId, CardId]; // refs to source cards
+  composedAt: number;              // epoch ms
+}
+```
+
+**Inventory storage** — both FusedItem and ComposedItem live in `WorldState.inventory` alongside raw `Card` items (see §6.6).
 
 ### 6.5 HiddenLevel (unlocked by hidden card recipe)
 
@@ -449,8 +484,10 @@ interface WorldState {
   deck: Deck | null;
   levels: Level[];             // base 5 + any unlocked hidden levels
   currentLevelIndex: number;
-  inventory: FusedItem[];      // fused items the player is carrying
+  activePhysicsCardId: string | null;  // ref to deck.physicsCards[i]; persists across level transitions
+  inventory: (Card | FusedItem | ComposedItem)[]; // Card entries must have type === 'item'
   hand: Card[];                // physics cards currently in player's hand (subset of deck.physicsCards)
+  unlockedHiddenLevelIds: string[]; // refs to levels[] that were unlocked mid-session
   llmStats: {
     callsThisSession: number;
     totalLatencyMs: number;
@@ -518,7 +555,7 @@ Pick the right fusion path:
 - If a hiddenCard with matching unlockRecipe is in play: produce a HiddenLevel.
 
 JSON shape (FusedItem):
-{"kind": "item", "name": "...", "sprite": "snake_case from sprite palette", "behavior": "...", "stackable": false}
+{"kind": "item", "name": "...", "spriteKey": "snake_case from sprite palette", "behavior": "...", "stackable": false}
 
 JSON shape (HiddenLevel):
 {"kind": "level", "levelName": "...", "paletteOverride": ["#...", ...], "ruleQuirk": "..."}
@@ -547,11 +584,11 @@ Speak now. Avoid repeating the same opener as your history. You may hint at a hi
 
 ### 7.5 Hidden level generation
 
-Triggered by a hiddenCard recipe match. Same call as fusion path 2 (handled inside the fusion prompt above, when `kind: "level"` is produced). No separate prompt.
+Triggered by a hiddenCard recipe match. Same call as fusion path 3 (item + hidden card, handled inside the fusion prompt above, when `kind: "level"` is produced). No separate prompt.
 
-### 7.6 Card + Card fusion — REMOVED (client-side)
+### 7.6 Card + Card composition — handled on client (no LLM)
 
-Card + Card fusion is deterministic and handled in `cardSystem.compose(a, b)` on the client. No LLM call. Example: `Moon + Sea` always produces `Tide` (a card with both effects combined). The composition table is in `src/core/cardComposition.ts` and is hand-authored.
+Card + Card composition is deterministic and handled in `cardSystem.composeCards(a, b)` on the client. No LLM call. Example: `Moon + Sea` always produces `Tide` (a card with both effects combined). The composition table is in `src/core/cardComposition.ts` and is hand-authored. The result is a `ComposedItem` (not a `FusedItem` — see §6.4).
 
 ### 7.7 Output parsing
 - A single shared `safeParseLLMJson(raw)` helper handles all 3 JSON-shaped calls (deck gen, item fusion, NPC dialogue).
@@ -682,6 +719,7 @@ whimsy/
           SettingsPanel.ts
           CardHandView.ts                     <- player's physics card hand
           FusionAltarUI.ts                    <- drag two cards to fuse
+          Attribution.ts                      <- About "Credits" tab (TS, not TSX)
         utils/
           uuid.ts
           color.ts
@@ -797,13 +835,13 @@ The About modal's "Credits" tab must list every source.
 | Phaser examples | MIT | No |
 | Inter font | OFL 1.1 | No |
 
-**Implementation location**: `apps/web/src/components/Attribution.tsx` + `apps/desktop/src/components/Attribution.tsx`.
+**Implementation location**: `src/ui/Attribution.ts` (TS, not TSX — this project does not use React). Rendered by the in-game About modal "Credits" tab.
 
 ### 10.6 Card visuals vs asset mapping
 
 | Card type | Visual composition |
 |---|---|
-| `themeCard` | frame sliced from atlas/cards.png + Phaser tint (theme color 0-5) |
+| `themeCard` | frame sliced from atlas/cards.png + Phaser tint (theme color index 0-4) |
 | `physicsCard` | generic card back + icon from atlas/items.png |
 | `itemCard` | matching sprite from atlas/items.png + card frame |
 | `npcCard` | matching sprite from atlas/npcs.png + card frame |
@@ -848,7 +886,7 @@ The About modal's "Credits" tab must list every source.
 | 1.2 | Perlin noise terrain generator + tile renderer | Walkable, visible terrain |
 | 1.3 | Player controller (top-down, WASD + mouse aim) | Player can move, collide with walls |
 | 1.4 | WFC tile sampler for biome + decoration | 5 distinct biome variants |
-| 1.5 | Card data model + Deck container + 16 hardcoded decks | All card types round-trip through `Card` interface |
+| 1.5 | Card data model + Deck container + 5 hardcoded decks (one per biome; 16 total reached in Phase 3) | All card types round-trip through `Card` interface |
 | 1.6 | CardEntity (card-on-ground) + pickup + inventory (max 6 slots) | Pick up a card, see in HUD |
 | 1.7 | NPC entity + proximity prompt + fixed dialogue table | Talk to NPC, see templated line |
 | 1.8 | Level exit trigger + 5-level session loop | Play through 5 levels end-to-end |
