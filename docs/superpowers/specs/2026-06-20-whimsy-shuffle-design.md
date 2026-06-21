@@ -1,5 +1,7 @@
 # Whimsy Shuffle 奇想洗牌世界 — Design Spec
 
+> **Language:** This is the English source spec. For Chinese readers, see [2026-06-20-whimsy-shuffle-design.zh-CN.md](./2026-06-20-whimsy-shuffle-design.zh-CN.md).
+>
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Browser-based 2D sandbox casual game where each session is "shuffled" — fresh theme, fresh levels, fresh rules. Phaser 3 + WebLLM. Pure procgen works without LLM; LLM enhancement is opt-in.
