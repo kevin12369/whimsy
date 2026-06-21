@@ -46,10 +46,20 @@ export class GameScene extends Phaser.Scene {
     const offsetX = (1280 - this.w * this.tileSize) / 2;
     const offsetY = (720 - this.h * this.tileSize) / 2;
     this.drawTilemap(offsetX, offsetY);
+    // Place exit at the bottom-right exit tile; mark it with a pulsing 2x2
+    // block plus a label so the player can see where to go.
+    const exitPx = offsetX + this.exitPos.x * this.tileSize;
+    const exitPy = offsetY + this.exitPos.y * this.tileSize;
+    this.add.rectangle(exitPx, exitPy, this.tileSize * 2, this.tileSize * 2, 0xffff00).setOrigin(0);
+    this.add.rectangle(exitPx + 4, exitPy + 4, this.tileSize * 2 - 8, this.tileSize * 2 - 8, 0x444400).setOrigin(0);
+    this.add.text(exitPx + 4, exitPy - 18, 'EXIT', { fontSize: '12px', color: '#ff0' });
     this.player = this.add.rectangle(offsetX + this.tileSize * 2, offsetY + this.tileSize * 2, 12, 12, 0x00ffff);
     this.keys = this.input.keyboard!.createCursorKeys();
     this.wasd = this.input.keyboard!.addKeys('W,A,S,D') as Record<string, Phaser.Input.Keyboard.Key>;
     this.hudText = this.add.text(offsetX + 8, offsetY + 8, `Level ${this.session.currentLevelIndex + 1}/${this.session.maxLevels}`, { color: '#fff' });
+    // Back-to-menu hint, top-right of the map.
+    this.add.text(1280 - offsetX - 110, offsetY + 8, '[Esc] Menu', { fontSize: '12px', color: '#aaa' });
+    this.input.keyboard!.on('keydown-ESC', () => this.scene.start('MenuScene'));
   }
 
   private drawTilemap(offsetX: number, offsetY: number) {
@@ -60,7 +70,6 @@ export class GameScene extends Phaser.Scene {
         this.add.rectangle(offsetX + x * this.tileSize, offsetY + y * this.tileSize, this.tileSize, this.tileSize, color).setOrigin(0);
       }
     }
-    this.add.rectangle(offsetX + this.exitPos.x * this.tileSize, offsetY + this.exitPos.y * this.tileSize, this.tileSize, this.tileSize, 0xffff00).setOrigin(0);
   }
 
   override update(_t: number, dt: number) {
@@ -84,6 +93,12 @@ export class GameScene extends Phaser.Scene {
       this.player.y = offsetY + next.y;
     }
     if (reachedExit({ x: tx, y: ty }, this.exitPos)) {
+      // If this was the final level, finish the session and return to menu.
+      if (this.session.currentLevelIndex >= this.session.maxLevels - 1) {
+        gameBus.emit('level:exit', { levelIndex: this.session.currentLevelIndex });
+        this.scene.start('MenuScene');
+        return;
+      }
       this.session = advanceLevel(this.session);
       gameBus.emit('level:exit', { levelIndex: this.session.currentLevelIndex });
       this.hudText.setText(`Level ${this.session.currentLevelIndex + 1}/${this.session.maxLevels}`);
