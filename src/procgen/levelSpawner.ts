@@ -1,4 +1,10 @@
 export interface Placement {
+  cardId: string;
+  tileX: number;
+  tileY: number;
+}
+
+export interface FloorTilePlacement {
   tileX: number;
   tileY: number;
 }
@@ -23,9 +29,9 @@ function shuffleInPlace<T>(arr: T[], r: () => number): void {
 function floorTiles(
   tilemap: number[], w: number, h: number,
   excludePad: boolean,
-  excludePositions: ReadonlyArray<Placement>,
-): Placement[] {
-  const result: Placement[] = [];
+  excludePositions: ReadonlyArray<{ tileX: number; tileY: number }>,
+): FloorTilePlacement[] {
+  const result: FloorTilePlacement[] = [];
   const taken = new Set(excludePositions.map(p => `${p.tileX},${p.tileY}`));
   for (let y = 0; y < h; y++) {
     for (let x = 0; x < w; x++) {
@@ -40,34 +46,42 @@ function floorTiles(
 
 export function spawnItemsForLevel(
   tilemap: number[], w: number, h: number,
-  count: number, seed: number,
+  cardIds: string[],
+  seed: number,
 ): Placement[] {
   const tiles = floorTiles(tilemap, w, h, true, []);
   shuffleInPlace(tiles, rng(seed));
-  return tiles.slice(0, Math.min(count, tiles.length));
+  return tiles.slice(0, Math.min(cardIds.length, tiles.length)).map((t, i) => ({
+    cardId: cardIds[i]!,
+    tileX: t.tileX,
+    tileY: t.tileY,
+  }));
 }
 
 export function spawnNpcsForLevel(
   tilemap: number[], w: number, h: number,
-  count: number, seed: number,
-  excludeFrom: ReadonlyArray<Placement> = [],
+  cardIds: string[],
+  seed: number,
+  excludeFrom: ReadonlyArray<FloorTilePlacement> = [],
 ): Placement[] {
   const tiles = floorTiles(tilemap, w, h, true, excludeFrom);
   shuffleInPlace(tiles, rng(seed ^ 0x9e3779b9));
-  return tiles.slice(0, Math.min(count, tiles.length));
+  return tiles.slice(0, Math.min(cardIds.length, tiles.length)).map((t, i) => ({
+    cardId: cardIds[i]!,
+    tileX: t.tileX,
+    tileY: t.tileY,
+  }));
 }
 
 export function placeFusionAltar(
   tilemap: number[], w: number, h: number,
   seed: number,
-): Placement {
+): FloorTilePlacement {
   const tiles = floorTiles(tilemap, w, h, true, []);
   if (tiles.length === 0) return { tileX: 0, tileY: 0 };
   const r = rng(seed ^ 0x517cc1b7);
   const cx = w / 2;
   const cy = h / 2;
-  // Stable sort with a seeded jitter so the closest-to-center tile
-  // wins but small random walks give visual variety across seeds.
   const scored = tiles.map(t => {
     const jitter = r() * 2;
     return { t, score: Math.hypot(t.tileX - cx, t.tileY - cy) + jitter };

@@ -9,7 +9,8 @@ describe('deck + spawn integration', () => {
     const w = 40, h = 30;
     const deck = buildFallbackDeck(0);
     const tilemap = runWFC(w, h, { seed: 7, weights: biomeWeightsFor('forest') });
-    const placements = spawnItemsForLevel(tilemap, w, h, Math.min(6, deck.itemCards.length), 7);
+    const itemIds = deck.itemCards.slice(0, 6).map(c => c.id);
+    const placements = spawnItemsForLevel(tilemap, w, h, itemIds, 7);
     expect(placements.length).toBeGreaterThan(0);
     for (const p of placements) {
       expect(tilemap[p.tileY * w + p.tileX]).toBe(0);
@@ -25,7 +26,8 @@ describe('deck + spawn integration', () => {
       for (let y = 0; y < 3; y++) {
         for (let x = 0; x < 3; x++) tilemap[y * w + x] = 0;
       }
-      const items = spawnItemsForLevel(tilemap, w, h, 6, i + 1);
+      const itemIds = deck.itemCards.slice(0, 6).map(c => c.id);
+      const items = spawnItemsForLevel(tilemap, w, h, itemIds, i + 1);
       expect(items.length).toBeGreaterThan(0);
     }
   });

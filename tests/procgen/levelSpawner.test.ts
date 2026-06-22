@@ -7,11 +7,14 @@ function emptyTilemap(w: number, h: number, walls: Array<[number, number]> = [])
   return out;
 }
 
+const CARD_IDS_6 = ['i0', 'i1', 'i2', 'i3', 'i4', 'i5'];
+const CARD_IDS_2 = ['n0', 'n1'];
+
 describe('spawnItemsForLevel', () => {
   it('returns count items, all on floor tiles, excluding spawn pad', () => {
     const w = 40, h = 30;
     const tilemap = emptyTilemap(w, h);
-    const items = spawnItemsForLevel(tilemap, w, h, 6, 42);
+    const items = spawnItemsForLevel(tilemap, w, h, CARD_IDS_6, 42);
     expect(items).toHaveLength(6);
     for (const item of items) {
       const inSpawnPad = item.tileX < 3 && item.tileY < 3;
@@ -23,24 +26,24 @@ describe('spawnItemsForLevel', () => {
   it('deterministic for the same seed', () => {
     const w = 40, h = 30;
     const tilemap = emptyTilemap(w, h);
-    const a = spawnItemsForLevel(tilemap, w, h, 6, 42);
-    const b = spawnItemsForLevel(tilemap, w, h, 6, 42);
+    const a = spawnItemsForLevel(tilemap, w, h, CARD_IDS_6, 42);
+    const b = spawnItemsForLevel(tilemap, w, h, CARD_IDS_6, 42);
     expect(a).toEqual(b);
   });
 
   it('different seeds produce different positions', () => {
     const w = 40, h = 30;
     const tilemap = emptyTilemap(w, h);
-    const a = spawnItemsForLevel(tilemap, w, h, 6, 42);
-    const b = spawnItemsForLevel(tilemap, w, h, 6, 99);
+    const a = spawnItemsForLevel(tilemap, w, h, CARD_IDS_6, 42);
+    const b = spawnItemsForLevel(tilemap, w, h, CARD_IDS_6, 99);
     expect(a.map(p => `${p.tileX},${p.tileY}`)).not.toEqual(b.map(p => `${p.tileX},${p.tileY}`));
   });
 
-  it('returns fewer than count if not enough floor tiles', () => {
+  it('returns fewer than cardIds length if not enough floor tiles', () => {
     const w = 5, h = 5;
     const tilemap = emptyTilemap(w, h, [[3, 3], [4, 3]]);
-    const items = spawnItemsForLevel(tilemap, w, h, 10, 1);
-    expect(items.length).toBeLessThanOrEqual(10);
+    const items = spawnItemsForLevel(tilemap, w, h, CARD_IDS_6, 1);
+    expect(items.length).toBeLessThanOrEqual(6);
     expect(items.length).toBeGreaterThan(0);
   });
 });
@@ -49,8 +52,8 @@ describe('spawnNpcsForLevel', () => {
   it('returns up to count NPCs on floor tiles, no overlap with items', () => {
     const w = 40, h = 30;
     const tilemap = emptyTilemap(w, h);
-    const items = spawnItemsForLevel(tilemap, w, h, 6, 42);
-    const npcs = spawnNpcsForLevel(tilemap, w, h, 2, 42, items);
+    const items = spawnItemsForLevel(tilemap, w, h, CARD_IDS_6, 42);
+    const npcs = spawnNpcsForLevel(tilemap, w, h, CARD_IDS_2, 42, items);
     expect(npcs.length).toBeGreaterThan(0);
     expect(npcs.length).toBeLessThanOrEqual(2);
     const itemPositions = new Set(items.map(p => `${p.tileX},${p.tileY}`));
