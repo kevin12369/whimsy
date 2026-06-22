@@ -1,6 +1,6 @@
 import Phaser from 'phaser';
 import { runWFC } from '../../procgen/wfc';
-import { biomeWeights, BIOMES } from '../../procgen/biomes';
+import { THEME_WORLDS, biomeWeightsFor } from '../../procgen/themeWorlds';
 import { createSession, advanceLevel, reachedExit, reachedExitPixel } from '../../core/sessionLoop';
 import { computeMove, canMoveTo } from '../entities/Player';
 import { gameBus } from '../../core/eventBus';
@@ -27,10 +27,10 @@ export class GameScene extends Phaser.Scene {
   create() {
     // Phase 1: force forest biome for a playable tile mix (no impassable water lake).
     // biome selection will move to deck-aware picking in Task 12 follow-up.
-    const biome = BIOMES.find(b => b.id === 'forest') ?? BIOMES[0]!;
+    const biome = THEME_WORLDS.find(b => b.id === 'forest') ?? THEME_WORLDS[0]!;
     // Fit the 1280x720 canvas: 40 cols x 30 rows x 16px = 640x480, centered.
     this.w = 40; this.h = 30;
-    this.tilemap = runWFC(this.w, this.h, { seed: Date.now() & 0xffff, weights: biomeWeights(biome.id) });
+    this.tilemap = runWFC(this.w, this.h, { seed: Date.now() & 0xffff, weights: biomeWeightsFor(biome.id) });
     // Force player spawn area (top-left 3x3) to be floor so the player isn't trapped in water/wall.
     for (let y = 0; y < 3; y++) {
       for (let x = 0; x < 3; x++) {

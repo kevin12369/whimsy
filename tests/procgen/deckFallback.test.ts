@@ -14,9 +14,9 @@ describe('buildFallbackDeck', () => {
     }
   });
 
-  it('5 biomes cycled produce 5 distinct themeCards by name; deck index varies the rest', () => {
+  it('11 theme worlds produce 11 distinct themeCards by name', () => {
     const seen = new Set<string>();
-    for (let i = 0; i < 15; i++) seen.add(buildFallbackDeck(i).themeCard.name);
-    expect(seen.size).toBe(5);
+    for (let i = 0; i < 11; i++) seen.add(buildFallbackDeck(i).themeCard.name);
+    expect(seen.size).toBe(11);
   });
 });
