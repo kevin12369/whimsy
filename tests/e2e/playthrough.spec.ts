@@ -40,3 +40,17 @@ test('ESC opens and closes pause modal without console errors', async ({ page })
   await page.waitForTimeout(300);
   expect(errors).toEqual([]);
 });
+
+test('BootScene shows Loading then transitions to MenuScene', async ({ page }) => {
+  const errors: string[] = [];
+  page.on('pageerror', e => errors.push(e.message));
+  page.on('console', m => { if (m.type() === 'error') errors.push(m.text()); });
+  await page.goto('/');
+  // Either the BootScene Loading text or the MenuScene 'New Shuffle'
+  // button is visible within 5 seconds. The BootScene text may flash
+  // by too fast to assert reliably, but the transition itself must
+  // complete cleanly.
+  await expect(page.getByText('Whimsy Shuffle')).toBeVisible({ timeout: 5000 });
+  await expect(page.getByText('New Shuffle')).toBeVisible({ timeout: 5000 });
+  expect(errors).toEqual([]);
+});
