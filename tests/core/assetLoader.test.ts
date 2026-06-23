@@ -24,19 +24,22 @@ describe('safeAddSprite', () => {
       16, 16,
       0xabcdef,
     );
-    expect((obj as { kind: string }).kind).toBe('rect');
-    expect((obj as { c: number }).c).toBe(0xabcdef);
+    expect((obj as unknown as { kind: string }).kind).toBe('rect');
+    expect((obj as unknown as { c: number }).c).toBe(0xabcdef);
   });
 
   it('returns an Image when texture exists', () => {
+    let displayWidthSeen = 0;
+    let displayHeightSeen = 0;
     const fakeScene = {
       textures: { exists: (_: string) => true },
       add: {
-        image: (x: number, y: number, k: string) => ({
-          x, y, k, kind: 'image',
-          setDisplaySize(w: number, h: number) { this.displayWidth = w; this.displayHeight = h; },
-          displayWidth: 0,
-          displayHeight: 0,
+        image: (_x: number, _y: number, _k: string) => ({
+          kind: 'image',
+          setDisplaySize(w: number, h: number) {
+            displayWidthSeen = w;
+            displayHeightSeen = h;
+          },
         }),
         rectangle: () => ({ kind: 'rect' }),
       },
@@ -48,9 +51,9 @@ describe('safeAddSprite', () => {
       16, 16,
       0x000000,
     );
-    expect((obj as { kind: string }).kind).toBe('image');
-    expect((obj as { displayWidth: number }).displayWidth).toBe(16);
-    expect((obj as { displayHeight: number }).displayHeight).toBe(16);
+    expect((obj as unknown as { kind: string }).kind).toBe('image');
+    expect(displayWidthSeen).toBe(16);
+    expect(displayHeightSeen).toBe(16);
   });
 });
 

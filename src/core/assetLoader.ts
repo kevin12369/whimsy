@@ -11,11 +11,11 @@
 //    rectangle matching the Phase 1.5 placeholder. This means
 //    gameplay is robust to offline / partial-asset situations.
 //
-// IMPORTANT: We avoid `import Phaser from 'phaser'` here so that
+// IMPORTANT: This module uses type-only import for Phaser so that
 // vitest in jsdom can import this file without Phaser's
-// CanvasFeatures.js crashing on the missing canvas. The function
-// signatures use a structural type so tests can pass a fakeScene
-// without instantiating a real Phaser.Scene.
+// CanvasFeatures.js crashing on the missing canvas. Tests pass a
+// fakeScene that satisfies the AssetScene structural type.
+import type Phaser from 'phaser';
 import { SPRITE_KEYS, type SpriteKey } from '../config/assets';
 
 const SPRITE_PATHS: Record<SpriteKey, string> = {
@@ -42,14 +42,10 @@ export interface LoadRequest {
 export interface TextureQuery {
   exists(key: string): boolean;
 }
-export interface SpriteAdder {
-  image(x: number, y: number, key: string): { x: number; y: number; k: string; setDisplaySize(w: number, h: number): void };
-  rectangle(x: number, y: number, w: number, h: number, c: number): unknown;
-}
 export interface AssetScene {
   load: LoadRequest;
   textures: TextureQuery;
-  add: SpriteAdder;
+  add: Phaser.GameObjects.GameObjectFactory;
 }
 
 /**
@@ -72,7 +68,7 @@ export function safeAddSprite(
   key: string,
   w: number, h: number,
   fallbackColor: number,
-): unknown {
+): Phaser.GameObjects.GameObject {
   if (scene.textures.exists(key)) {
     const img = scene.add.image(x, y, key);
     img.setDisplaySize(w, h);

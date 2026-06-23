@@ -9,6 +9,8 @@ import { gameBus } from '../../core/eventBus';
 import { spawnItemsForLevel, spawnNpcsForLevel, placeFusionAltar } from '../../procgen/levelSpawner';
 import { itemInPickupRange, altarInOpenRange, npcInTalkRange } from '../../core/proximity';
 import { pickDialogueLine, recordLine } from '../../core/dialogueOverlay';
+import { safeAddSprite } from '../../core/assetLoader';
+import { SPRITE_KEYS } from '../../config/assets';
 import type { Card, Deck } from '../../core/cardSystem';
 
 const SPAWN_PAD = 3;
@@ -127,7 +129,10 @@ export class GameScene extends Phaser.Scene {
       const py = offsetY + p.tileY * this.tileSize + this.tileSize / 2;
       const card = this.deck.itemCards.find(c => c.id === p.cardId);
       const c = this.add.container(px, py);
-      const rect = this.add.rectangle(0, 0, 14, 14, 0xff8800).setStrokeStyle(1, 0xffffff);
+      const rect = safeAddSprite(this, 0, 0, SPRITE_KEYS.item, 14, 14, 0xff8800);
+      if ('setStrokeStyle' in rect) {
+        (rect as Phaser.GameObjects.Rectangle).setStrokeStyle(1, 0xffffff);
+      }
       const label = this.add.text(0, 0, card?.name.slice(0, 4) ?? '?', {
         fontSize: '8px', color: '#000',
       }).setOrigin(0.5);
@@ -140,7 +145,7 @@ export class GameScene extends Phaser.Scene {
       const py = offsetY + p.tileY * this.tileSize + this.tileSize / 2;
       const card = this.deck.npcCards.find(c => c.id === p.cardId);
       const c = this.add.container(px, py);
-      const body = this.add.rectangle(0, 0, 16, 16, 0x66ffaa).setStrokeStyle(1, 0xffffff);
+      const body = safeAddSprite(this, 0, 0, SPRITE_KEYS.npc, 16, 16, 0x66ffaa);
       const label = this.add.text(0, 0, '!', { fontSize: '12px', color: '#000' }).setOrigin(0.5);
       c.add([body, label]);
       c.setData('cardId', p.cardId);
@@ -150,13 +155,16 @@ export class GameScene extends Phaser.Scene {
     const altarPx = offsetX + this.altarPos.x * this.tileSize + this.tileSize / 2;
     const altarPy = offsetY + this.altarPos.y * this.tileSize + this.tileSize / 2;
     const altarEntity = this.add.container(altarPx, altarPy);
-    altarEntity.add(this.add.rectangle(0, 0, 18, 18, 0xff00ff).setStrokeStyle(2, 0xffffff));
+    altarEntity.add(safeAddSprite(this, 0, 0, SPRITE_KEYS.altar, 18, 18, 0xff00ff));
     altarEntity.add(this.add.text(0, 0, '*', { fontSize: '14px', color: '#fff' }).setOrigin(0.5));
 
-    this.player = this.add.rectangle(
+    this.player = safeAddSprite(
+      this,
       offsetX + this.tileSize * 2, offsetY + this.tileSize * 2,
-      12, 12, 0x00ffff,
-    );
+      SPRITE_KEYS.player,
+      12, 12,
+      0x00ffff,
+    ) as Phaser.GameObjects.Rectangle;
 
     this.keys = this.input.keyboard!.createCursorKeys();
     this.wasd = this.input.keyboard!.addKeys('W,A,S,D') as Record<string, Phaser.Input.Keyboard.Key>;
