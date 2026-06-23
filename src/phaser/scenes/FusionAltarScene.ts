@@ -44,7 +44,7 @@ export class FusionAltarScene extends Phaser.Scene {
       this.add.text(640, 360, 'Find at least 2 items to fuse.', {
         fontSize: '18px', color: '#aaa',
       }).setOrigin(0.5);
-      this.addButton('Back', 600, () => this.exit(null));
+      this.addButton('Back', 660, () => this.exit(null));
       return;
     }
 
@@ -74,17 +74,21 @@ export class FusionAltarScene extends Phaser.Scene {
       this.add.text(740, 420, 'Slot 2', { fontSize: '12px', color: '#888' }).setOrigin(0.5),
     ];
 
-    this.fuseButton = this.add.rectangle(640, 560, 200, 50, 0x333344)
+    this.fuseButton = this.add.rectangle(640, 580, 200, 50, 0x333344)
       .setStrokeStyle(1, 0xaaaaff)
       .setOrigin(0.5)
       .setInteractive({ useHandCursor: true });
-    this.fuseLabel = this.add.text(640, 560, 'FUSE', {
+    this.fuseLabel = this.add.text(640, 580, 'FUSE', {
       fontSize: '18px', color: '#fff',
     }).setOrigin(0.5);
     this.fuseButton.on('pointerdown', () => this.doFuse());
     this.updateFuseButton();
 
-    this.addButton('Back', 640, () => this.exit(null));
+    // Back sits beside FUSE so both are visible regardless of inventory size.
+    this.addButton('Back', 660, () => this.exit(null));
+
+    // ESC also exits (cancels fusion — no result emitted).
+    this.input.keyboard!.on('keydown-ESC', () => this.exit(null));
   }
 
   private toggle(cardId: string) {
