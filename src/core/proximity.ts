@@ -33,7 +33,7 @@ export function npcInTalkRange(
   playerX: number, playerY: number,
   npcX: number, npcY: number,
   tileSize: number = 16,
-  radiusTiles: number = 2,
+  radiusTiles: number = 2.5,
 ): boolean {
   return inRange(playerX, playerY, npcX, npcY, radiusTiles * tileSize);
 }
