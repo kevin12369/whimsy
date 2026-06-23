@@ -82,6 +82,36 @@ export class GameScene extends Phaser.Scene {
     }
     this.exitPos = { x: this.w - 2, y: this.h - 2 };
 
+    this.itemPlacements = spawnItemsForLevel(
+      this.tilemap, this.w, this.h,
+      this.deck.itemCards.slice(0, 6).map(c => c.id),
+      this.session.currentLevelIndex + 1,
+    );
+    this.npcPlacements = spawnNpcsForLevel(
+      this.tilemap, this.w, this.h,
+      this.deck.npcCards.slice(0, 3).map(c => c.id),
+      this.session.currentLevelIndex + 1,
+      this.itemPlacements,
+    );
+    const altar = placeFusionAltar(this.tilemap, this.w, this.h, this.session.currentLevelIndex + 1);
+    this.altarPos = { x: altar.tileX, y: altar.tileY };
+
+    // Force a 3x3 floor pad around every spawned entity so the
+    // player can always walk up to them, even when the surrounding
+    // WFC output is mostly walls (forest biome: 36% floor only).
+    const forcePad = (cx: number, cy: number) => {
+      for (let dy = -1; dy <= 1; dy++) {
+        for (let dx = -1; dx <= 1; dx++) {
+          const x = cx + dx, y = cy + dy;
+          if (x < 0 || y < 0 || x >= this.w || y >= this.h) continue;
+          this.tilemap[y * this.w + x] = 0;
+        }
+      }
+    };
+    for (const p of this.itemPlacements) forcePad(p.tileX, p.tileY);
+    for (const p of this.npcPlacements) forcePad(p.tileX, p.tileY);
+    forcePad(this.altarPos.x, this.altarPos.y);
+
     const offsetX = (1280 - this.w * this.tileSize) / 2;
     const offsetY = (720 - this.h * this.tileSize) / 2;
     this.drawTilemap(offsetX, offsetY);
@@ -92,11 +122,6 @@ export class GameScene extends Phaser.Scene {
     this.add.rectangle(exitPx + 4, exitPy + 4, this.tileSize * 2 - 8, this.tileSize * 2 - 8, 0x444400).setOrigin(0);
     this.add.text(exitPx + 4, exitPy - 18, 'EXIT', { fontSize: '12px', color: '#ff0' });
 
-    this.itemPlacements = spawnItemsForLevel(
-      this.tilemap, this.w, this.h,
-      this.deck.itemCards.slice(0, 6).map(c => c.id),
-      this.session.currentLevelIndex + 1,
-    );
     for (const p of this.itemPlacements) {
       const px = offsetX + p.tileX * this.tileSize + this.tileSize / 2;
       const py = offsetY + p.tileY * this.tileSize + this.tileSize / 2;
@@ -110,12 +135,6 @@ export class GameScene extends Phaser.Scene {
       this.itemEntities.set(p.cardId, c);
     }
 
-    this.npcPlacements = spawnNpcsForLevel(
-      this.tilemap, this.w, this.h,
-      this.deck.npcCards.slice(0, 3).map(c => c.id),
-      this.session.currentLevelIndex + 1,
-      this.itemPlacements,
-    );
     for (const p of this.npcPlacements) {
       const px = offsetX + p.tileX * this.tileSize + this.tileSize / 2;
       const py = offsetY + p.tileY * this.tileSize + this.tileSize / 2;
@@ -128,10 +147,8 @@ export class GameScene extends Phaser.Scene {
       this.npcEntities.set(p.cardId, c);
     }
 
-    const altar = placeFusionAltar(this.tilemap, this.w, this.h, this.session.currentLevelIndex + 1);
-    this.altarPos = { x: altar.tileX, y: altar.tileY };
-    const altarPx = offsetX + altar.tileX * this.tileSize + this.tileSize / 2;
-    const altarPy = offsetY + altar.tileY * this.tileSize + this.tileSize / 2;
+    const altarPx = offsetX + this.altarPos.x * this.tileSize + this.tileSize / 2;
+    const altarPy = offsetY + this.altarPos.y * this.tileSize + this.tileSize / 2;
     const altarEntity = this.add.container(altarPx, altarPy);
     altarEntity.add(this.add.rectangle(0, 0, 18, 18, 0xff00ff).setStrokeStyle(2, 0xffffff));
     altarEntity.add(this.add.text(0, 0, '*', { fontSize: '14px', color: '#fff' }).setOrigin(0.5));
