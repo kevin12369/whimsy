@@ -4,7 +4,7 @@ import { THEME_WORLDS, biomeWeightsFor } from '../../procgen/themeWorlds';
 import { buildFallbackDeck } from '../../procgen/deckFallback';
 import { createSession, advanceLevel, reachedExitPixel } from '../../core/sessionLoop';
 import { computeMove, canMoveTo } from '../entities/Player';
-import { addToInventory } from '../../core/inventory';
+import { addToInventory, INVENTORY_MAX } from '../../core/inventory';
 import { gameBus } from '../../core/eventBus';
 import { spawnItemsForLevel, spawnNpcsForLevel, placeFusionAltar } from '../../procgen/levelSpawner';
 import { itemInPickupRange, altarInOpenRange, npcInTalkRange } from '../../core/proximity';
@@ -146,14 +146,17 @@ export class GameScene extends Phaser.Scene {
     this.eKey = this.input.keyboard!.addKey('E');
     this.escKey = this.input.keyboard!.addKey('ESC');
 
-    this.hudText = this.add.text(offsetX + 8, offsetY + 8,
-      `Level ${this.session.currentLevelIndex + 1}/${this.session.maxLevels}  |  World: ${world.name}`,
-      { color: '#fff' });
-    this.invText = this.add.text(offsetX + 8, offsetY + 28,
-      'INV: (empty)', { color: '#aaa', fontSize: '11px' });
-    this.promptText = this.add.text(640, offsetY + 8, '[Esc] Pause', {
-      fontSize: '12px', color: '#aaa',
-    }).setOrigin(0.5, 0);
+    this.hudText = this.add.text(offsetX + 8, offsetY + 6,
+      `Level ${this.session.currentLevelIndex + 1}/${this.session.maxLevels}  World: ${world.name}`,
+      { color: '#fff', fontSize: '13px' });
+    this.invText = this.add.text(offsetX + 8, offsetY + 24,
+      'INV: (empty)', { color: '#aaa', fontSize: '11px',
+      wordWrap: { width: this.w * this.tileSize - 16 } });
+    // Prompt lives at the bottom of the map (above the hand cards at y=720-80).
+    this.promptText = this.add.text(offsetX + this.w * this.tileSize / 2,
+      offsetY + this.h * this.tileSize - 12, '[Esc] Pause', {
+      fontSize: '12px', color: '#ff0',
+    }).setOrigin(0.5, 1);
 
     this.escKey.on('down', () => this.openPause());
     this.eKey.on('down', () => this.handleE());
@@ -298,8 +301,11 @@ export class GameScene extends Phaser.Scene {
     const byId = new Map<string, Card>();
     for (const c of this.deck.itemCards) byId.set(c.id, c);
     for (const c of this.deck.physicsCards) byId.set(c.id, c);
-    const names = this.inventory.map(id => byId.get(id)?.name ?? '?').join(', ');
-    this.invText.setText(`INV: ${names}`);
+    const names = this.inventory.map(id => byId.get(id)?.name ?? '?');
+    const shown = names.length <= 4
+      ? names.join(', ')
+      : `${names.slice(0, 3).join(', ')} +${names.length - 3} more`;
+    this.invText.setText(`INV (${this.inventory.length}/${INVENTORY_MAX}): ${shown}`);
   }
 
   private showFloatingText(text: string) {
