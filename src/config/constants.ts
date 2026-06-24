@@ -1,7 +1,7 @@
 export const TILE_SIZE = 16;
 export const LEVEL_WIDTH_TILES = 64;
 export const LEVEL_HEIGHT_TILES = 48;
-export const PLAYER_SPEED = 180;
+export const PLAYER_SPEED = 190;
 export const INVENTORY_MAX_SLOTS = 6;
 export const SESSION_LEVELS = 5;
 export const THEMES_PER_HARDCODED_DECK = 16;

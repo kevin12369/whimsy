@@ -34,16 +34,22 @@ function fallbackColorFor(card: Card, idx: number): number {
 
 export function renderHand(scene: Phaser.Scene, hand: Card[]): Phaser.GameObjects.Container {
   const c = scene.add.container(0, scene.scale.height - 80);
+  const count = Math.min(hand.length, 8);
+  const cardW = 80;
+  const gap = 16;
+  const totalW = count * cardW + (count - 1) * gap;
+  const startX = (scene.scale.width - totalW) / 2;
   hand.slice(0, 8).forEach((card, i) => {
+    const x = startX + i * (cardW + gap);
     const handKey = handKeyFor(card);
-    const rect = safeAddSprite(scene, 80 + i * 100, 0, handKey, 80, 60, fallbackColorFor(card, i));
+    const rect = safeAddSprite(scene, x, 0, handKey, cardW, 60, fallbackColorFor(card, i));
     if ('setStrokeStyle' in rect && typeof (rect as { setStrokeStyle?: unknown }).setStrokeStyle === 'function') {
       (rect as Phaser.GameObjects.Rectangle).setStrokeStyle(1, 0xaaaaff);
     }
     rect.setInteractive({ useHandCursor: true, draggable: true });
     rect.setData('cardId', card.id);
     rect.setData('cardName', card.name);
-    const label = scene.add.text(80 + i * 100, 0, card.name, {
+    const label = scene.add.text(x, 0, card.name, {
       fontSize: '11px', color: '#fff',
     }).setOrigin(0.5);
     rect.on('pointerdown', () => {

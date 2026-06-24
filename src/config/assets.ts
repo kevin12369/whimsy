@@ -20,6 +20,13 @@ export const SPRITE_KEYS = {
   hand_earth_pull:    'hand_earth_pull',
   hand_feather_fall:  'hand_feather_fall',
   hand_mud_walk:      'hand_mud_walk',
+
+  // Kenney UI assets
+  ui_panel: 'ui_panel',
+  ui_panel_dark: 'ui_panel_dark',
+  ui_btn: 'ui_btn',
+  ui_btn_pressed: 'ui_btn_pressed',
+  ui_keyboard_atlas: 'ui_keyboard_atlas',
 } as const;
 
 export type SpriteKey = typeof SPRITE_KEYS[keyof typeof SPRITE_KEYS];

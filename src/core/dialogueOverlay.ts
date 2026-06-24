@@ -1,3 +1,5 @@
+import type { WorldId } from '../procgen/themeWorlds';
+
 const TABLE: Record<string, string[]> = {
   'druid vendor': [
     "Moss speaks, if you let it.",
@@ -58,15 +60,88 @@ const TABLE: Record<string, string[]> = {
 
 const FALLBACK = ["The world is full of small wonders.", "Hmm.", "...", "Yes, well.", "Another day."];
 
+// World-specific flavour lines
+const WORLD_FLAVOUR: Partial<Record<WorldId, string[]>> = {
+  forest: ['The trees are watching you.', 'A wild fern quivers as you pass.'],
+  ocean: ['The tide whispers your name.', 'Brine crusts on everything here.'],
+  dungeon: ['The walls breathe. Softly.', 'A torch sputters in the distance.'],
+  scifi: ['A quiet hum fills the air.', 'Sensors flicker. You are detected.'],
+  desert: ['Sand shifts beneath your feet.', 'Heat shimmers on the horizon.'],
+  tundra: ['Your breath freezes mid-air.', 'The snow crunches like glass.'],
+  jungle: ['Vines pulse with slow life.', 'Something rustles above you.'],
+  crystal: ['Light bends in strange ways.', 'You hear a faint harmonic hum.'],
+  neon: ['Neon reflections pool on wet pavement.', 'The city hums at 60hz.'],
+  haunted: ['Shadows move when you are not looking.', 'A cold breath on your neck.'],
+  sky: ['Clouds drift through the floor.', 'The wind carries distant voices.'],
+};
+
+// Known fusion pairs for NPC hints
+const FUSION_PAIRS: Array<[string, string]> = [
+  ['brine comet', 'vine whip'],
+  ['cyan blade', 'violet blade'],
+  ['pickled star', 'ferment orb'],
+  ['dill drone', 'rose potion'],
+  ['ember shard', 'tide coin'],
+  ['moss pebble', 'glass fang'],
+  ['rune fragment', 'lantern wisp'],
+  ['brine pearl', 'saltspun coin'],
+  ['charcoal twig', 'amber bead'],
+  ['fern chip', 'prism chip'],
+  ['echo shard', 'wax bell'],
+  ['sour drop', 'glass mote'],
+  ['ash flake', 'sun coin'],
+  ['spore sac', 'frost splinter'],
+  ['gloam thread', 'marrow bead'],
+  ['vine whip', 'rose potion'],
+];
+
+const HINT_TEMPLATES = [
+  "I heard {a} and {b} make something special...",
+  "Have you tried {a} with {b} at the altar?",
+  "There's a rumour about {a} and {b}...",
+  "{a} and {b} — the old texts mention them together.",
+  "If you find {a} and {b}, don't just keep them separate.",
+];
+
 const HISTORY_CAP = 10;
 
-export function pickDialogueLine(role: string, history: string[]): string {
+export function pickDialogueLine(
+  role: string,
+  history: string[],
+  options?: { worldId?: string; itemNames?: string[] },
+): string {
   const pool = TABLE[role] ?? FALLBACK;
   const seen = new Set(history);
   const unseen = pool.filter(line => !seen.has(line));
-  const candidates = unseen.length > 0 ? unseen : pool;
+
+  // 1: Prefer an unseen base line
+  if (unseen.length > 0) {
+    const idx = history.length % unseen.length;
+    return unseen[idx]!;
+  }
+
+  // 2: Sometimes give a world-flavour line
+  if (options?.worldId && Math.random() < 0.4) {
+    const lines = WORLD_FLAVOUR[options.worldId as WorldId];
+    if (lines && lines.length > 0) {
+      return lines[Math.floor(Math.random() * lines.length)]!;
+    }
+  }
+
+  // 3: Sometimes give a fusion hint
+  if (options?.itemNames && options.itemNames.length > 0 && Math.random() < 0.5) {
+    const itemSet = new Set(options.itemNames);
+    const hintable = FUSION_PAIRS.filter(([a, b]) => itemSet.has(a) || itemSet.has(b));
+    if (hintable.length > 0) {
+      const [a, b] = hintable[Math.floor(Math.random() * hintable.length)]!;
+      const template = HINT_TEMPLATES[Math.floor(Math.random() * HINT_TEMPLATES.length)]!;
+      return template.replace('{a}', a).replace('{b}', b);
+    }
+  }
+
+  // 4: Fallback to cycled pool
   const offset = history.length;
-  return candidates[offset % candidates.length]!;
+  return pool[offset % pool.length]!;
 }
 
 export function recordLine(history: string[], line: string): string[] {

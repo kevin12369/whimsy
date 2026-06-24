@@ -5,6 +5,47 @@ export interface Vec2 { x: number; y: number; }
 
 // Player bbox half-extent (player is 12x12 -> half = 6).
 export const PLAYER_HALF = 6;
+export const DASH_DISTANCE = 48; // 3 tiles
+export const DASH_COOLDOWN_MS = 1600;
+
+let dashCooldownTimer = 0;
+let dashActive = false;
+
+export function isDashReady(): boolean {
+  return dashCooldownTimer <= 0;
+}
+
+export function getDashCooldown(): number {
+  return dashCooldownTimer;
+}
+
+export function triggerDash(): void {
+  if (dashCooldownTimer > 0) return;
+  dashActive = true;
+  dashCooldownTimer = DASH_COOLDOWN_MS;
+}
+
+/** Same as triggerDash but with a custom cooldown (for companion passives) */
+export function triggerDashWithCooldown(cooldownMs: number): void {
+  if (dashCooldownTimer > 0) return;
+  dashActive = true;
+  dashCooldownTimer = cooldownMs;
+}
+
+export function isDashing(): boolean {
+  return dashActive;
+}
+
+export function updateDashCooldown(dtMs: number): void {
+  if (dashCooldownTimer > 0) {
+    dashCooldownTimer -= dtMs;
+    if (dashCooldownTimer < 0) dashCooldownTimer = 0;
+  }
+  // Dash lasts for exactly one movement tick
+  if (dashActive) {
+    dashActive = false;
+  }
+}
 
 export function computeMove(pos: Vec2, keys: Keys, dt: number, speed = PLAYER_SPEED): Vec2 {
   let dx = 0, dy = 0;
@@ -14,7 +55,12 @@ export function computeMove(pos: Vec2, keys: Keys, dt: number, speed = PLAYER_SP
   if (keys.down) dy += 1;
   const len = Math.hypot(dx, dy);
   if (len > 0) { dx /= len; dy /= len; }
-  return { x: pos.x + dx * speed * dt, y: pos.y + dy * speed * dt };
+  let moveSpeed = speed;
+  if (dashActive) {
+    // Cover DASH_DISTANCE in one frame regardless of dt
+    moveSpeed = DASH_DISTANCE / Math.max(dt, 0.001);
+  }
+  return { x: pos.x + dx * moveSpeed * dt, y: pos.y + dy * moveSpeed * dt };
 }
 
 // True if any corner of the player bbox (centered on x,y with half-extent)

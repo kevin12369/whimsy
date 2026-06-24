@@ -32,5 +32,9 @@ export function createWorldState(): WorldState {
     mode: 'procgen',
     modelStatus: 'unloaded',
     unlockedHiddenLevels: [],
+    currentRealm: null,
+    currentLayer: 0,
+    layerFragmentCount: 0,
+    playerHp: 3,
   };
 }

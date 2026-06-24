@@ -32,6 +32,13 @@ const SPRITE_PATHS: Record<SpriteKey, string> = {
   hand_earth_pull: SPRITE_KEYS.hand_earth_pull,
   hand_feather_fall: SPRITE_KEYS.hand_feather_fall,
   hand_mud_walk: SPRITE_KEYS.hand_mud_walk,
+
+  // UI assets (keys only — actual paths loaded separately in preload)
+  ui_panel: '',
+  ui_panel_dark: '',
+  ui_btn: '',
+  ui_btn_pressed: '',
+  ui_keyboard_atlas: '', // special handling in preload
 };
 
 // Structural types so tests don't need to import Phaser (which
@@ -51,11 +58,23 @@ export interface AssetScene {
 /**
  * Register load.image() calls on the given scene for every sprite
  * role. Safe to call multiple times (Phaser dedupes by key).
+ * Also loads the keyboard icon atlas from Kenney Input Prompts.
  */
-export function preloadAllAssets(scene: { load: LoadRequest }): void {
+export function preloadAllAssets(scene: { load: LoadRequest & { atlasXML(key: string, imgPath: string, xmlPath: string): void } }): void {
   for (const [role, fileStem] of Object.entries(SPRITE_PATHS)) {
+    if (!fileStem) continue; // ui assets loaded separately
     scene.load.image(role, `sprites/${fileStem}.png`);
   }
+  // Load Kenney UI images from assets/ui/
+  scene.load.image('ui_panel', 'assets/ui/panel_blue.png');
+  scene.load.image('ui_btn', 'assets/ui/panel_blue.png');
+  scene.load.image('ui_btn_pressed', 'assets/ui/panel_blue_pressed.png');
+  // Load keyboard icon spritesheet as atlas
+  scene.load.atlasXML('ui_keyboard_atlas', 'assets/ui/keyboard_sheet.png', 'assets/ui/keyboard_sheet.xml');
+  // Load Roguelike tile spritesheet (16x16, 1px margin, 56 cols)
+  scene.load.spritesheet('tilesheet', 'assets/tiles/roguelikeSheet_transparent.png', {
+    frameWidth: 16, frameHeight: 16, margin: 1, spacing: 0,
+  });
 }
 
 /**

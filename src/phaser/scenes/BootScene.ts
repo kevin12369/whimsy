@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
 import { preloadAllAssets } from '../../core/assetLoader';
+import { preloadVFX } from '../../ui/VFX';
 
 export class BootScene extends Phaser.Scene {
   constructor() { super('BootScene'); }
@@ -12,6 +13,8 @@ export class BootScene extends Phaser.Scene {
     }).setOrigin(0.5);
 
     preloadAllAssets(this);
+    preloadVFX(this);
+    preloadSFX(this);
 
     this.load.on('progress', (v: number) => {
       if (this.progressText) {

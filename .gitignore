@@ -38,3 +38,10 @@ test-results/
 # Temporary
 tmp/
 *.tmp
+
+# WorkBuddy memory
+.workbuddy/
+
+# Large downloaded asset archives
+public/assets/kenney/*.zip
+public/assets/kenney/
