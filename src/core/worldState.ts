@@ -19,6 +19,10 @@ export interface WorldState {
   mode: Mode;
   modelStatus: ModelStatus;
   unlockedHiddenLevels: HiddenLevel[];
+  currentRealm: string | null;
+  currentLayer: number;
+  layerFragmentCount: number;
+  playerHp: number;
 }
 
 export function createWorldState(): WorldState {

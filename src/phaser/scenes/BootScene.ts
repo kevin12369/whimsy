@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import { preloadAllAssets } from '../../core/assetLoader';
 import { preloadVFX } from '../../ui/VFX';
+import { preloadSFX } from '../../ui/AudioManager';
 
 export class BootScene extends Phaser.Scene {
   constructor() { super('BootScene'); }

@@ -48,7 +48,7 @@ export class InventoryScene extends Phaser.Scene {
   }
 
   create() {
-    this.cameras.main.setBackgroundColor(0x0a0a1e, 0.92);
+    this.cameras.main.setBackgroundColor(0x0a0a1e);
     const cx = 640;
     const cy = 360;
 
@@ -118,7 +118,7 @@ export class InventoryScene extends Phaser.Scene {
     this.tabTexts.forEach((t, i) => {
       const isSel = this.currentCategory === CATEGORY_ORDER[i];
       t.setColor(isSel ? '#c4b5fd' : '#4b5563');
-      t.setBackgroundColor(isSel ? '#1e1e3a' : undefined);
+      t.setBackgroundColor(isSel ? '#1e1e3a' : '');
     });
     this.selectedIdx = 0;
     this.refreshGrid();
@@ -251,7 +251,7 @@ export class InventoryScene extends Phaser.Scene {
         return 'material';
       }
     }
-    if (card.type === 'hidden' || name === 'fused') return 'fused';
+    if (card.type === 'hidden' || (card as any).name === 'fused') return 'fused';
     return 'key_item';
   }
 

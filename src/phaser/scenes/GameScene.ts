@@ -23,7 +23,6 @@ import { getTileFrame } from '../../procgen/tileFrames';
 import { getItemFrame } from '../../procgen/itemFrames';
 import { getEventsForRealm, resolveConflict, type ConflictState } from '../../core/domainConflict';
 import { getMoralChoice } from '../../core/moralChoices';
-import type { WorldId } from '../../procgen/themeWorlds';
 import { CompanionEntity } from '../entities/Companion';
 import { DialogueBox } from '../../ui/DialogueBox';
 import { createKeyIcon } from '../../ui/KeyIcon';
@@ -115,7 +114,7 @@ export class GameScene extends Phaser.Scene {
   private trapCooldown = 0; // ms timestamp for next trap damage
   private maxHp = 3;
   private fragmentCount = 0;
-  private fragmentEntities: Phaser.GameObjects.Container[] = [];
+  private fragmentEntities: any[] = [];
 
   // Level objective system
   private static readonly OBJECTIVE_TYPES = ['reach', 'collect', 'fusion'] as const;
@@ -172,11 +171,11 @@ export class GameScene extends Phaser.Scene {
       this.currentLayer = data.layer;
       this.contaminatorId = data.contaminatorId;
     } else {
-      if (data && typeof data.levelIndex === 'number') {
-        this.session = { ...this.session, currentLevelIndex: data.levelIndex };
+      if ((data as any) && typeof (data as any).levelIndex === 'number') {
+        this.session = { ...this.session, currentLevelIndex: (data as any).levelIndex };
       }
-      if (data?.deck) {
-        this.deck = data.deck;
+      if ((data as any)?.deck) {
+        this.deck = (data as any).deck;
       }
     }
   }
@@ -547,9 +546,6 @@ export class GameScene extends Phaser.Scene {
   }
 
   // ─── DOMAIN CONFLICT SYSTEM ──────────────────────────────
-
-  private pendingConflictEvent?: import('../../core/domainConflict').ConflictEvent;
-  private conflictTriggered = false;
 
   /** Spawn a conflict event zone on the map */
   private spawnConflictEvent() {
@@ -1714,7 +1710,7 @@ export class GameScene extends Phaser.Scene {
         if (entity) {
           this.tweens.add({ targets: entity, scaleX: 1.5, scaleY: 1.5, alpha: 0, duration: 200, onComplete: () => entity.destroy() });
           this.tweens.add({ targets: entity, x: this.player.x, y: this.player.y, duration: 150, ease: 'Quad.easeIn' });
-        } else { entity?.destroy(); }
+        }
         this.itemEntities.delete(placement.cardId);
         const card = this.deck.itemCards.find(c => c.id === placement.cardId);
         gameBus.emit('card:picked-up', { cardId: placement.cardId });

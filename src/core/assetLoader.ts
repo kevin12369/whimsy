@@ -72,7 +72,7 @@ export function preloadAllAssets(scene: { load: LoadRequest & { atlasXML(key: st
   // Load keyboard icon spritesheet as atlas
   scene.load.atlasXML('ui_keyboard_atlas', 'assets/ui/keyboard_sheet.png', 'assets/ui/keyboard_sheet.xml');
   // Load Roguelike tile spritesheet (16x16, 1px margin, 56 cols)
-  scene.load.spritesheet('tilesheet', 'assets/tiles/roguelikeSheet_transparent.png', {
+  (scene.load as any).spritesheet('tilesheet', 'assets/tiles/roguelikeSheet_transparent.png', {
     frameWidth: 16, frameHeight: 16, margin: 1, spacing: 0,
   });
 }
