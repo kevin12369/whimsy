@@ -1096,23 +1096,27 @@ export class GameScene extends Phaser.Scene {
     for (let y = 0; y < this.h; y++) {
       for (let x = 0; x < this.w; x++) {
         const t = this.tilemap[y * this.w + x]!;
+        const baseColor = colorMap[t] ?? 0x333333;
+        // Always draw a solid-colored base tile
+        const tile = this.add.rectangle(offsetX + x * this.tileSize, offsetY + y * this.tileSize, this.tileSize, this.tileSize, baseColor).setOrigin(0);
+        tile.setDepth(1);
+        this.tileGraphics.push(tile);
+        // Overlay Kenney tile sprite for texture (semi-transparent decorative overlay)
         if (hasTileSheet) {
           const frameIdx = getTileFrame(worldId, t);
           const img = this.add.image(offsetX + x * this.tileSize + this.tileSize / 2, offsetY + y * this.tileSize + this.tileSize / 2, 'tilesheet', frameIdx);
           img.setOrigin(0.5);
-          img.setDepth(1);
+          img.setDepth(2);
           this.tileGraphics.push(img as unknown as Phaser.GameObjects.Rectangle);
-          // Red overlay for traps
+          // Red overlay for traps (on top of sprite)
           if (t === 5) {
             const overlay = this.add.rectangle(offsetX + x * this.tileSize, offsetY + y * this.tileSize, this.tileSize, this.tileSize, 0xff0000, 0.25).setOrigin(0);
-            overlay.setDepth(2);
+            overlay.setDepth(3);
             this.tileGraphics.push(overlay);
           }
         } else {
-          const color = colorMap[t] ?? 0x333333;
-          const tile = this.add.rectangle(offsetX + x * this.tileSize, offsetY + y * this.tileSize, this.tileSize, this.tileSize, color).setOrigin(0);
+          // No spritesheet — trap indicator on the solid tile
           if (t === 5) tile.setStrokeStyle(1, 0xff0000, 0.4);
-          this.tileGraphics.push(tile);
         }
       }
     }

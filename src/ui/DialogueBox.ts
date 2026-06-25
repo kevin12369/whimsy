@@ -21,8 +21,6 @@ export class DialogueBox {
   private queue: QueuedMessage[] = [];
   private currentTimer?: Phaser.Time.TimerEvent;
 
-  private static readonly DEPTH = 2000;
-
   constructor(scene: Phaser.Scene) {
     this.scene = scene;
     const cx = 640;
@@ -33,33 +31,34 @@ export class DialogueBox {
     const BOX_HEIGHT = BOX_BOT - BOX_TOP;
     const BOX_CY = (BOX_TOP + BOX_BOT) / 2;
 
-    // Kenney pixel UI panel (fallback: dark rectangle with better opacity)
+    // Kenney pixel UI panel (fallback: dark rectangle with high contrast)
     if (scene.textures.exists('ui_panel')) {
       const img = scene.add.image(cx, BOX_CY, 'ui_panel');
       img.setDisplaySize(1100, BOX_HEIGHT);
       img.setOrigin(0.5);
       img.setDepth(50);
-      img.setAlpha(0.95);
+      img.setAlpha(0.98);
       this.bg = img;
     } else {
-      this.bg = scene.add.rectangle(cx, BOX_CY, 1100, BOX_HEIGHT, 0x0a0a1e, 0.95)
+      this.bg = scene.add.rectangle(cx, BOX_CY, 1100, BOX_HEIGHT, 0x000000, 0.95)
         .setOrigin(0.5)
-        .setStrokeStyle(1, 0x7c3aed, 0.6)
+        .setStrokeStyle(2, 0x7c3aed, 0.7)
         .setDepth(50);
     }
 
     this.nameTag = scene.add.text(80, BOX_TOP + 2, '', {
-      fontSize: '12px', color: '#c4b5fd',
+      fontSize: '12px', color: '#c084fc',
       fontStyle: 'bold',
-      backgroundColor: '#1a1a3e',
+      backgroundColor: '#111133',
       padding: { x: 8, y: 2 },
     }).setDepth(51);
 
-    this.textContent = scene.add.text(90, BOX_TOP + 20, '', {
-      fontSize: '13px',
-      color: '#f0f0f0',
+    this.textContent = scene.add.text(90, BOX_TOP + 22, '', {
+      fontSize: '14px',
+      color: '#ffffff',
       wordWrap: { width: 1060 },
-      lineSpacing: 3,
+      lineSpacing: 4,
+      shadow: { offsetX: 1, offsetY: 1, color: '#000000', blur: 2, fill: true },
     }).setDepth(51);
 
     this.indicator = scene.add.text(1140, BOX_BOT - 6, '▼', {
