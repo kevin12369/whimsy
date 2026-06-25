@@ -1252,7 +1252,7 @@ export class GameScene extends Phaser.Scene {
     this.hudText = this.add.text(offsetX + 8, offsetY + 6, label, { color: '#fff', fontSize: '13px' });
     this.add.text(offsetX + 8, offsetY + 20, this.currentWorld.ruleQuirk, { color: '#aaa', fontSize: '10px' });
     this.invText = this.add.text(offsetX + 8, offsetY + 34, 'INV: (empty)', { color: '#aaa', fontSize: '11px', wordWrap: { width: this.w * this.tileSize - 16 } });
-    this.promptText = this.add.text(offsetX + this.w * this.tileSize / 2, offsetY + this.h * this.tileSize - 12, '[Esc] Pause', { fontSize: '12px', color: '#ff0' }).setOrigin(0.5, 1);
+    this.promptText = this.add.text(offsetX + this.w * this.tileSize / 2, offsetY + this.h * this.tileSize - 12, '[Esc] Pause', { fontSize: '12px', color: '#ff0', backgroundColor: '#000000aa', padding: { x: 6, y: 2 } }).setOrigin(0.5, 1).setDepth(100);
 
     // Fusion altar compass (right side of HUD)
     this.updateAltarCompass();

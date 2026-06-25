@@ -33,18 +33,19 @@ export class DialogueBox {
     const BOX_HEIGHT = BOX_BOT - BOX_TOP;
     const BOX_CY = (BOX_TOP + BOX_BOT) / 2;
 
-    // Kenney pixel UI panel (fallback: dark rectangle)
+    // Kenney pixel UI panel (fallback: dark rectangle with better opacity)
     if (scene.textures.exists('ui_panel')) {
       const img = scene.add.image(cx, BOX_CY, 'ui_panel');
       img.setDisplaySize(1100, BOX_HEIGHT);
       img.setOrigin(0.5);
-      img.setDepth(DialogueBox.DEPTH);
+      img.setDepth(50);
+      img.setAlpha(0.95);
       this.bg = img;
     } else {
-      this.bg = scene.add.rectangle(cx, BOX_CY, 1100, BOX_HEIGHT, 0x0a0a1e, 0.92)
+      this.bg = scene.add.rectangle(cx, BOX_CY, 1100, BOX_HEIGHT, 0x0a0a1e, 0.95)
         .setOrigin(0.5)
         .setStrokeStyle(1, 0x7c3aed, 0.6)
-        .setDepth(DialogueBox.DEPTH);
+        .setDepth(50);
     }
 
     this.nameTag = scene.add.text(80, BOX_TOP + 2, '', {
@@ -52,21 +53,21 @@ export class DialogueBox {
       fontStyle: 'bold',
       backgroundColor: '#1a1a3e',
       padding: { x: 8, y: 2 },
-    }).setDepth(DialogueBox.DEPTH + 1);
+    }).setDepth(51);
 
     this.textContent = scene.add.text(90, BOX_TOP + 20, '', {
-      fontSize: '12px',
-      color: '#e0e0e0',
+      fontSize: '13px',
+      color: '#f0f0f0',
       wordWrap: { width: 1060 },
-      lineSpacing: 2,
-    }).setDepth(DialogueBox.DEPTH + 1);
+      lineSpacing: 3,
+    }).setDepth(51);
 
     this.indicator = scene.add.text(1140, BOX_BOT - 6, '▼', {
       fontSize: '10px', color: '#7c3aed',
-    }).setOrigin(0.5).setDepth(DialogueBox.DEPTH + 1);
+    }).setOrigin(0.5).setDepth(51);
 
     this.container = scene.add.container(0, 0, [this.bg, this.nameTag, this.textContent, this.indicator]);
-    this.container.setDepth(DialogueBox.DEPTH);
+    this.container.setDepth(50);
     this.container.setVisible(false);
   }
 
