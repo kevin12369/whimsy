@@ -9,8 +9,8 @@ importers:
   .:
     dependencies:
       phaser:
-        specifier: 3.80.1
-        version: 3.80.1
+        specifier: 4.2.0
+        version: 4.2.0
     devDependencies:
       '@playwright/test':
         specifier: ^1.42.0
@@ -666,8 +666,8 @@ packages:
   pathval@1.1.1:
     resolution: {integrity: sha512-Dp6zGqpTdETdR63lehJYPeIOqpiNBNtc7BpWSLrOje7UaIsE5aY92r/AunQA7rsXvet3lrJ3JnZX29UPTKXyKQ==}
 
-  phaser@3.80.1:
-    resolution: {integrity: sha512-VQGAWoDOkEpAWYkI+PUADv5Ql+SM0xpLuAMBJHz9tBcOLqjJ2wd8bUhxJgOqclQlLTg97NmMd9MhS75w16x1Cw==}
+  phaser@4.2.0:
+    resolution: {integrity: sha512-9nSQZs4CJ9+V96i2mRC3BBStBcsQWGJJBRpdFYSbpL40/i/QM+wLofaCYMsxNyDk8WJOlHGZUh3uVRKa7lj6yg==}
 
   picocolors@1.1.1:
     resolution: {integrity: sha512-xceH2snhtb5M9liqDsmEw56le376mTZkEX/jEb/RxNFyegNul7eNslCXP9FDj/Lcu0X8KEyMceP2ntpaHrDEVA==}
@@ -1448,7 +1448,7 @@ snapshots:
 
   pathval@1.1.1: {}
 
-  phaser@3.80.1:
+  phaser@4.2.0:
     dependencies:
       eventemitter3: 5.0.4
 
